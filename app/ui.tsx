@@ -1,64 +1,3 @@
-import Link from 'next/link';
-import { SITE_NAME, SITE_TAGLINE } from '../lib/config';
-import { formatDate } from '../lib/format';
-import type { Article } from '../lib/types';
-
-export function Masthead({ dateline }: { dateline?: string }) {
-  return (
-    <header className="masthead">
-      <div className="masthead-row">
-        <Link href="/" className="wordmark">
-          The AI <em>Wire</em>
-        </Link>
-        <span className="dateline">{dateline ?? SITE_TAGLINE}</span>
-      </div>
-    </header>
-  );
-}
-
-export function WireLine({ article }: { article: Article }) {
-  return (
-    <p className="wire-line">
-      <span>{article.source_feed}</span>
-      <span className="sep">▸</span>
-      {article.tags?.primary && (
-        <>
-          <Link href={`/?tags=${article.tags.primary}`} className="wire-tag">
-            {article.tags.primary}
-          </Link>
-          <span className="sep">·</span>
-        </>
-      )}
-      <span>filed {formatDate(article.published_at ?? article.created_at)}</span>
-    </p>
-  );
-}
-
-function toggleHref(tag: string, selected: string[]): string {
-  const next = selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag];
-  return next.length === 0 ? '/' : `/?tags=${next.join(',')}`;
-}
-
-export function TagFilter({ tags, selected }: { tags: string[]; selected: string[] }) {
-  return (
-    <nav className="filter-bar" aria-label="Filter by tag">
-      <span className="meta">filter</span>
-      <Link href="/" className={`tag-chip${selected.length === 0 ? ' tag-chip--active' : ''}`}>
-        all
-      </Link>
-      {tags.map((tag) => (
-        <Link
-          key={tag}
-          href={toggleHref(tag, selected)}
-          className={`tag-chip${selected.includes(tag) ? ' tag-chip--active' : ''}`}
-        >
-          {tag}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
 const CHIP_CLASS: Record<string, string> = {
   in_review: 'chip--review',
   failed: 'chip--failed',
@@ -82,14 +21,4 @@ const CHIP_LABEL: Record<string, string> = {
 
 export function StatusChip({ status }: { status: string }) {
   return <span className={`chip ${CHIP_CLASS[status] ?? 'chip--flight'}`}>{CHIP_LABEL[status] ?? status}</span>;
-}
-
-export function SiteFooter() {
-  return (
-    <footer className="site-footer">
-      <p className="meta">
-        {SITE_NAME} — {SITE_TAGLINE}. Every story is reviewed by a human before it appears here.
-      </p>
-    </footer>
-  );
 }

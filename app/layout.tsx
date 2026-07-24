@@ -1,11 +1,10 @@
 import type { Metadata } from 'next';
-import { Bricolage_Grotesque, Newsreader, Spline_Sans_Mono } from 'next/font/google';
+import { Newsreader, IBM_Plex_Mono } from 'next/font/google';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/config';
 import './globals.css';
 
-const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--font-display' });
 const body = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--font-body' });
-const mono = Spline_Sans_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
@@ -14,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${body.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

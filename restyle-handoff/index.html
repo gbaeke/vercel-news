@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The AI Wire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:light dark}
+  html,body{margin:0;padding:0}
+  body{--paper:#F4F0E8;--ink:#191713;--mut:#6B6459;--txt:#3B372F;--acc:#C8361E;--rule:rgba(25,23,19,.25);--dot:rgba(25,23,19,.035);--soft:rgba(25,23,19,.3);
+    font-family:'Newsreader',serif;background:var(--paper);color:var(--ink);transition:background .35s ease,color .35s ease}
+  body.night{--paper:#171310;--ink:#EDE7DB;--mut:#97907F;--txt:#C9C1B2;--acc:#E0603F;--rule:rgba(237,231,219,.25);--dot:rgba(237,231,219,.05);--soft:rgba(237,231,219,.3)}
+  a{color:var(--ink);text-decoration:none}a:hover{color:var(--acc)}
+  ::selection{background:var(--acc);color:var(--paper)}
+  @keyframes wire-blink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .grain{min-height:100vh;background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:5px 5px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 40px 96px}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:12px;cursor:pointer;padding:5px 14px;border-radius:999px;border:1px solid var(--soft);background:transparent;color:var(--ink);transition:all .15s}
+  .pill:hover{border-color:var(--ink)}
+  .pill.on{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+  img.thumb{width:100%;display:block;border:1px solid var(--ink);filter:saturate(.92)}
+</style>
+</head>
+<body>
+<div class="grain"><div class="wrap">
+
+  <header style="padding:28px 0 20px;display:flex;flex-direction:column;gap:22px">
+    <div class="mono" style="display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)">
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--acc);animation:wire-blink 2.2s infinite"></span>
+        Live wire — dispatch open
+      </span>
+      <span style="display:flex;align-items:center;gap:16px">
+        <span>24 Jul 2026</span>
+        <button id="theme-toggle" class="pill" style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase">☾ night mode</button>
+      </span>
+    </div>
+    <div style="border-top:3px solid var(--ink);border-bottom:1px solid var(--ink);padding:26px 0 22px;display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <h1 style="margin:0;font-size:clamp(56px,7vw,84px);line-height:.9;font-weight:800;letter-spacing:-.03em">The AI <em style="font-weight:400;color:var(--acc)">Wire</em></h1>
+      <p class="mono" style="margin:0;max-width:260px;font-size:11.5px;line-height:1.6;color:var(--mut)">Machine-drafted, human-approved AI industry news. Every story reviewed before it hits the wire.</p>
+    </div>
+    <nav id="filters" class="mono" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px">
+      <span style="color:var(--mut);letter-spacing:.14em;text-transform:uppercase;font-size:10.5px;margin-right:6px">Filter /</span>
+      <!-- one .pill button per tag; agent renders from tag list -->
+    </nav>
+  </header>
+
+  <!-- LEAD STORY: newest article -->
+  <section style="margin-top:36px;animation:rise .5s ease both">
+    <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:start">
+      <article style="display:flex;flex-direction:column;gap:20px">
+        <div class="mono kicker" style="display:flex;align-items:center;gap:12px">
+          <span style="background:var(--acc);color:var(--paper);padding:4px 10px">Lead dispatch</span>
+          <span>anthropic ▸ product</span>
+          <span style="color:var(--mut)">· filed 24 Jul 2026</span>
+        </div>
+        <h2 style="margin:0;font-size:clamp(36px,4.2vw,54px);line-height:1.02;font-weight:700;letter-spacing:-.02em;text-wrap:balance">
+          <a href="article.html">Finally, someone put actual data behind the AI job panic</a>
+        </h2>
+        <p style="margin:0;font-size:19px;line-height:1.55;color:var(--txt);max-width:56ch">The Anthropic Economic Index connector lets users query real usage data of Claude, replacing speculation with concrete insight. Engineers can see which tasks are actually being automated — and decide with data instead of dread.</p>
+        <div><a class="mono" href="article.html" style="font-size:12px;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid var(--acc);padding-bottom:3px">Read the dispatch →</a></div>
+      </article>
+      <a href="article.html" style="display:block;position:relative">
+        <img class="thumb" src="https://goqfoxxapkg8fkxt.public.blob.vercel-storage.com/thumbnails/3-1784901657991.png" alt="">
+        <span class="mono" style="position:absolute;top:-10px;right:-10px;background:var(--ink);color:var(--paper);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:6px 10px">No. 003</span>
+      </a>
+    </div>
+  </section>
+
+  <div style="margin:56px 0 40px;display:flex;align-items:center;gap:16px">
+    <span class="mono" style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap">Latest on the wire</span>
+    <span style="flex:1;border-top:1px solid var(--ink)"></span>
+    <span class="mono" id="count" style="font-size:11px;color:var(--mut)">03 dispatches</span>
+  </div>
+
+  <!-- STORY ROWS: one per remaining article, numbered high→low -->
+  <section id="wire-list" style="display:flex;flex-direction:column">
+    <article data-tag="product" style="display:grid;grid-template-columns:72px 1fr 220px;gap:36px;padding:34px 0;border-bottom:1px solid var(--rule);align-items:start;animation:rise .5s ease both">
+      <div class="mono" style="font-size:26px;font-weight:600;color:var(--acc);line-height:1;padding-top:4px">02</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="mono kicker" style="display:flex;gap:12px"><span>openai ▸ product</span><span style="color:var(--mut)">· filed 24 Jul 2026</span></div>
+        <h3 style="margin:0;font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.015em;text-wrap:balance"><a href="#">OpenAI integrates health data into ChatGPT: what developers need to know</a></h3>
+        <p style="margin:0;font-size:16.5px;line-height:1.55;color:var(--txt);max-width:62ch">U.S. users can now link Apple Health data and medical records into ChatGPT for personalized insights. Health apps face new competition, privacy stakes rise, and real-world data in chat becomes the benchmark.</p>
+      </div>
+      <a href="#"><img class="thumb" src="https://goqfoxxapkg8fkxt.public.blob.vercel-storage.com/thumbnails/2-1784898052424.png" alt=""></a>
+    </article>
+    <article data-tag="industry" style="display:grid;grid-template-columns:72px 1fr 220px;gap:36px;padding:34px 0;border-bottom:1px solid var(--rule);align-items:start;animation:rise .5s ease both">
+      <div class="mono" style="font-size:26px;font-weight:600;color:var(--acc);line-height:1;padding-top:4px">01</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="mono kicker" style="display:flex;gap:12px"><span>openai ▸ industry</span><span style="color:var(--mut)">· filed 24 Jul 2026</span></div>
+        <h3 style="margin:0;font-size:28px;line-height:1.12;font-weight:700;letter-spacing:-.015em;text-wrap:balance"><a href="#">OpenAI's Project Camellia: a template for AI infrastructure negotiations?</a></h3>
+        <p style="margin:0;font-size:16.5px;line-height:1.55;color:var(--txt);max-width:62ch">Project Camellia in Georgia shows how AI firms structure physical expansion with pledges on energy, community investment, and tool access — a voluntary framework that may set the benchmark for future deals.</p>
+      </div>
+      <a href="#"><img class="thumb" src="https://goqfoxxapkg8fkxt.public.blob.vercel-storage.com/thumbnails/1-1784897751935.png" alt=""></a>
+    </article>
+  </section>
+
+  <footer style="margin-top:48px;border-top:3px solid var(--ink);padding-top:24px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
+    <span style="font-size:22px;font-weight:800;letter-spacing:-.02em">The AI <em style="font-weight:400;color:var(--acc)">Wire</em></span>
+    <span class="mono" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">End of transmission · human-reviewed · 24 Jul 2026</span>
+  </footer>
+
+</div></div>
+<script src="theme.js"></script>
+<script>
+// Tag filter — agent supplies the tag list
+const TAGS = ['all','development','industry','models','policy','product','research','tooling'];
+const nav = document.getElementById('filters');
+let active = 'all';
+TAGS.forEach(t => {
+  const b = document.createElement('button');
+  b.className = 'pill' + (t === 'all' ? ' on' : '');
+  b.textContent = t;
+  b.onclick = () => {
+    active = t;
+    nav.querySelectorAll('.pill').forEach(x => x.classList.toggle('on', x === b));
+    let n = 0;
+    document.querySelectorAll('#wire-list article').forEach(a => {
+      const show = t === 'all' || a.dataset.tag === t;
+      a.style.display = show ? '' : 'none';
+      if (show) n++;
+    });
+    document.getElementById('count').textContent = String(n + 1).padStart(2, '0') + ' dispatches';
+  };
+  nav.appendChild(b);
+});
+</script>
+</body>
+</html>

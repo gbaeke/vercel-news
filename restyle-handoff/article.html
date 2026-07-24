@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finally, someone put actual data behind the AI job panic · The AI Wire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:light dark}
+  html,body{margin:0;padding:0}
+  body{--paper:#F4F0E8;--ink:#191713;--mut:#6B6459;--txt:#3B372F;--acc:#C8361E;--rule:rgba(25,23,19,.25);--dot:rgba(25,23,19,.035);--soft:rgba(25,23,19,.3);
+    font-family:'Newsreader',serif;background:var(--paper);color:var(--ink);transition:background .35s ease,color .35s ease}
+  body.night{--paper:#171310;--ink:#EDE7DB;--mut:#97907F;--txt:#C9C1B2;--acc:#E0603F;--rule:rgba(237,231,219,.25);--dot:rgba(237,231,219,.05);--soft:rgba(237,231,219,.3)}
+  a{color:var(--ink);text-decoration:none}a:hover{color:var(--acc)}
+  ::selection{background:var(--acc);color:var(--paper)}
+  @keyframes wire-blink{0%,100%{opacity:1}50%{opacity:.25}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .grain{min-height:100vh;background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:5px 5px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 40px 96px}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:5px 14px;border-radius:999px;border:1px solid var(--soft);background:transparent;color:var(--ink);transition:all .15s}
+  .pill:hover{border-color:var(--ink)}
+  .body-copy{max-width:680px;margin:56px auto 0;font-size:19.5px;line-height:1.65;color:var(--txt);display:flex;flex-direction:column;gap:26px}
+  .body-copy p{margin:0}
+  .dropcap::first-letter{float:left;font-size:64px;line-height:.82;font-weight:700;color:var(--acc);padding:6px 12px 0 0}
+</style>
+</head>
+<body>
+<div class="grain"><div class="wrap">
+
+  <header style="padding:28px 0 0;display:flex;flex-direction:column;gap:18px">
+    <div class="mono" style="display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)">
+      <a href="index.html" style="display:flex;align-items:center;gap:10px">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--acc);animation:wire-blink 2.2s infinite"></span>
+        ← Back to the wire
+      </a>
+      <span style="display:flex;align-items:center;gap:16px">
+        <span>24 Jul 2026</span>
+        <button id="theme-toggle" class="pill">☾ night mode</button>
+      </span>
+    </div>
+    <div style="border-top:3px solid var(--ink);border-bottom:1px solid var(--ink);padding:14px 0 12px;display:flex;align-items:baseline;justify-content:space-between;gap:16px">
+      <a href="index.html" style="font-size:26px;font-weight:800;letter-spacing:-.02em">The AI <em style="font-weight:400;color:var(--acc)">Wire</em></a>
+      <span class="mono" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">Dispatch No. 003</span>
+    </div>
+  </header>
+
+  <article style="animation:rise .5s ease both">
+    <header style="margin:56px auto 0;max-width:820px;display:flex;flex-direction:column;gap:22px">
+      <div class="mono kicker" style="display:flex;align-items:center;gap:12px">
+        <span style="background:var(--acc);color:var(--paper);padding:4px 10px">anthropic ▸ product</span>
+        <span style="color:var(--mut)">· filed 24 Jul 2026 · 4 min read</span>
+      </div>
+      <h1 style="margin:0;font-size:clamp(40px,5vw,62px);line-height:1.02;font-weight:700;letter-spacing:-.02em;text-wrap:balance">Finally, someone put actual data behind the AI job panic</h1>
+      <p style="margin:0;font-size:21px;line-height:1.5;color:var(--txt);font-style:italic">The Anthropic Economic Index connector lets you query real Claude usage data — replacing speculation with concrete insight about what AI is actually automating.</p>
+    </header>
+
+    <figure style="margin:44px 0 0;position:relative">
+      <img src="https://goqfoxxapkg8fkxt.public.blob.vercel-storage.com/thumbnails/3-1784901657991.png" alt="" style="width:100%;display:block;border:1px solid var(--ink);filter:saturate(.92)">
+      <figcaption class="mono" style="margin-top:10px;font-size:11px;letter-spacing:.1em;color:var(--mut);display:flex;justify-content:space-between">
+        <span>Machine-drafted illustration · reviewed by a human</span><span>FIG. 01</span>
+      </figcaption>
+    </figure>
+
+    <div class="body-copy">
+      <p class="dropcap">Every week, I get another Slack from a product manager asking if AI is going to make our team obsolete. I point to the same three tweets. Nobody's happy.</p>
+      <p>Enter the Anthropic Economic Index connector — a way to ask Claude questions about how people actually use AI in the wild, grounded in real usage data rather than vibes. The Index has existed for a while as a research dataset, but until now you had to download CSVs and run your own analysis. The connector makes it a chat interface.</p>
+      <p>Here's the workflow: open the connectors menu in claude.ai, find the Anthropic Economic Index in the directory, and enable it. No install, no API key. Then you just ask questions like you're talking to a co-worker who spent the weekend crunching numbers.</p>
+      <p>For engineers specifically, this is immediately useful. You can ask: "Which occupations use AI the most?" or drill into "What tasks are software developers automating with Claude?" or "How has that changed over the past year?" The answers come back with citations to the underlying data, which is still freely downloadable if you want to validate.</p>
+      <blockquote style="margin:18px 0;padding:6px 0 6px 28px;border-left:3px solid var(--acc);font-size:26px;line-height:1.35;font-weight:500;font-style:italic;color:var(--ink)">Instead of guessing which workflows are ripe for AI integration, ask the data.</blockquote>
+      <p>I tried it with "What are companies in the fintech space doing with Claude?" and got a breakdown of task categories — code generation, documentation, data extraction — with relative frequencies. That's not just a curiosity. It tells me where competitors are reducing friction and where my team might want to focus effort.</p>
+      <p>Of course, the limitation is right there in the name: this is Claude usage data, not a census of the whole economy. The connector surfaces that caveat and links back to source documentation. But for making tactical decisions about automation priorities, it beats the hot take of the week.</p>
+      <p>For someone shipping code tomorrow, the practical takeaway is simple: the connector takes maybe sixty seconds to set up and gives you something you can point to in a sprint planning meeting. That's a big improvement over "I saw a LinkedIn post."</p>
+      <p>Data won't stop your PM from asking the question. But it might stop you from rolling your eyes.</p>
+      <div class="mono" style="display:flex;align-items:center;gap:14px;margin-top:8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)">
+        <span style="flex:1;border-top:1px solid var(--rule)"></span><span>End of dispatch</span><span style="flex:1;border-top:1px solid var(--rule)"></span>
+      </div>
+    </div>
+  </article>
+
+  <section style="max-width:820px;margin:64px auto 0">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <span class="mono" style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;white-space:nowrap">More on the wire</span>
+      <span style="flex:1;border-top:1px solid var(--ink)"></span>
+    </div>
+    <a href="#" style="display:grid;grid-template-columns:56px 1fr;gap:20px;padding:20px 0;border-bottom:1px solid var(--rule);align-items:baseline">
+      <span class="mono" style="font-size:18px;font-weight:600;color:var(--acc)">02</span>
+      <span style="display:flex;flex-direction:column;gap:6px">
+        <span class="mono" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">openai ▸ product · filed 24 Jul 2026</span>
+        <span style="font-size:21px;font-weight:600;line-height:1.2">OpenAI integrates health data into ChatGPT: what developers need to know</span>
+      </span>
+    </a>
+    <a href="#" style="display:grid;grid-template-columns:56px 1fr;gap:20px;padding:20px 0;border-bottom:1px solid var(--rule);align-items:baseline">
+      <span class="mono" style="font-size:18px;font-weight:600;color:var(--acc)">01</span>
+      <span style="display:flex;flex-direction:column;gap:6px">
+        <span class="mono" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">openai ▸ industry · filed 24 Jul 2026</span>
+        <span style="font-size:21px;font-weight:600;line-height:1.2">OpenAI's Project Camellia: a template for AI infrastructure negotiations?</span>
+      </span>
+    </a>
+  </section>
+
+  <footer style="margin-top:72px;border-top:3px solid var(--ink);padding-top:24px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:12px">
+    <a href="index.html" style="font-size:22px;font-weight:800;letter-spacing:-.02em">The AI <em style="font-weight:400;color:var(--acc)">Wire</em></a>
+    <span class="mono" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)">End of transmission · human-reviewed · 24 Jul 2026</span>
+  </footer>
+
+</div></div>
+<script src="theme.js"></script>
+</body>
+</html>

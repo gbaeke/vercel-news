@@ -1,18 +1,21 @@
 /* ————————————————————————————————————————————————
-   The AI Wire — press-ink design system
-   One blue ink on warm paper; mono carries the machine
-   layer (datelines, tags, statuses), serif carries the news.
+   The AI Wire — warm-newsprint design system
+   Signal red on warm paper (see restyle-handoff/); mono
+   carries the machine layer (datelines, tags, statuses),
+   serif carries the news. The desk shares this palette;
+   the public pages define their own copy under .wire.
    ———————————————————————————————————————————————— */
 
 :root {
-  --paper: #faf7ef;
-  --paper-2: #f1ecdd;
-  --ink: #211e18;
-  --ink-soft: #6e6a5e;
-  --line: #ddd5c2;
-  --riso: #2b3fbf;
-  --riso-deep: #1e2e96;
-  --riso-wash: rgba(43, 63, 191, 0.09);
+  --paper: #F4F0E8;
+  --paper-2: #ECE6D9;
+  --ink: #191713;
+  --ink-soft: #6B6459;
+  --line: rgba(25, 23, 19, 0.25);
+  --riso: #C8361E;
+  --riso-deep: #A32B17;
+  --riso-wash: rgba(200, 54, 30, 0.08);
+  --grain-dot: rgba(25, 23, 19, 0.035);
   --ok: #1e7a4c;
   --ok-wash: rgba(30, 122, 76, 0.1);
   --warn: #a66a12;
@@ -23,14 +26,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #14161f;
-    --paper-2: #1c1f2c;
-    --ink: #edeade;
-    --ink-soft: #a09db0;
-    --line: #2d3145;
-    --riso: #8c9bf2;
-    --riso-deep: #aab6f7;
-    --riso-wash: rgba(140, 155, 242, 0.13);
+    --paper: #171310;
+    --paper-2: #211C17;
+    --ink: #EDE7DB;
+    --ink-soft: #97907F;
+    --line: rgba(237, 231, 219, 0.25);
+    --riso: #E0603F;
+    --riso-deep: #E97C5F;
+    --riso-wash: rgba(224, 96, 63, 0.12);
+    --grain-dot: rgba(237, 231, 219, 0.05);
     --ok: #57b586;
     --ok-wash: rgba(87, 181, 134, 0.14);
     --warn: #d9a04a;
@@ -46,7 +50,9 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--grain-dot) 1px, transparent 1px);
+  background-size: 5px 5px;
   color: var(--ink);
   font-family: var(--font-body), Georgia, serif;
   font-size: 1.0625rem;
@@ -91,7 +97,7 @@ img { max-width: 100%; display: block; }
   flex-wrap: wrap;
 }
 .wordmark {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 800;
   font-size: clamp(1.6rem, 4.5vw, 2.4rem);
   letter-spacing: -0.02em;
@@ -170,7 +176,7 @@ img { max-width: 100%; display: block; }
   border-bottom: 1.5px solid var(--line);
 }
 .lead-headline {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 800;
   font-size: clamp(1.7rem, 4.5vw, 3rem);
   line-height: 1.08;
@@ -220,7 +226,7 @@ img { max-width: 100%; display: block; }
 }
 .story-row:last-child { border-bottom: none; }
 .story-headline {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 700;
   font-size: 1.35rem;
   line-height: 1.2;
@@ -259,7 +265,7 @@ img { max-width: 100%; display: block; }
 
 .article-head { padding-block: clamp(1.75rem, 4vw, 3rem) 0; max-width: 46rem; }
 .article-title {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 800;
   font-size: clamp(1.8rem, 5vw, 2.9rem);
   line-height: 1.1;
@@ -278,7 +284,7 @@ img { max-width: 100%; display: block; }
 .prose { max-width: 46rem; padding-bottom: 2rem; }
 .prose p { margin: 0 0 1.1em; }
 .prose h1, .prose h2, .prose h3 {
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.25;
@@ -391,7 +397,7 @@ img { max-width: 100%; display: block; }
 .desk-row-title {
   flex: 1;
   min-width: 12rem;
-  font-family: var(--font-display), sans-serif;
+  font-family: var(--font-body), Georgia, serif;
   font-weight: 600;
   font-size: 1.02rem;
   line-height: 1.3;
@@ -590,4 +596,259 @@ img { max-width: 100%; display: block; }
   * { transition: none !important; }
   .story-row:hover .story-thumb,
   .lead:hover .lead-thumb { transform: none; }
+}
+
+/* ============================================================
+   The wire restyle (public pages) — see restyle-handoff/
+   All tokens scoped to .wire so the review desk keeps its own
+   :root palette. Night mode = .wire.night, persisted client-side
+   under localStorage "aiwire-theme".
+   ============================================================ */
+
+.wire {
+  --paper: #F4F0E8;
+  --ink: #191713;
+  --mut: #6B6459;
+  --txt: #3B372F;
+  --acc: #C8361E;
+  --rule: rgba(25, 23, 19, 0.25);
+  --dot: rgba(25, 23, 19, 0.035);
+  --soft: rgba(25, 23, 19, 0.3);
+  color-scheme: light;
+  font-family: var(--font-body), 'Newsreader', serif;
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 5px 5px;
+  color: var(--ink);
+  min-height: 100vh;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+.wire.night {
+  --paper: #171310;
+  --ink: #EDE7DB;
+  --mut: #97907F;
+  --txt: #C9C1B2;
+  --acc: #E0603F;
+  --rule: rgba(237, 231, 219, 0.25);
+  --dot: rgba(237, 231, 219, 0.05);
+  --soft: rgba(237, 231, 219, 0.3);
+  color-scheme: dark;
+}
+
+.wire a { color: var(--ink); text-decoration: none; }
+.wire a:hover { color: var(--acc); }
+.wire ::selection { background: var(--acc); color: var(--paper); }
+
+@keyframes wire-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes wire-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.wire-wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px 96px; }
+.wire .mono { font-family: var(--font-mono), 'IBM Plex Mono', monospace; }
+.wire .kicker { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
+.wire .dim { color: var(--mut); }
+.wire .pill {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--soft);
+  background: transparent;
+  color: var(--ink);
+  transition: all 0.15s;
+}
+.wire .pill:hover { border-color: var(--ink); color: var(--ink); }
+.wire .pill.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.wire .pill--toggle { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+.wire img.thumb { width: 100%; display: block; border: 1px solid var(--ink); filter: saturate(0.92); }
+
+/* header */
+.wire-header { padding: 28px 0 20px; display: flex; flex-direction: column; gap: 22px; }
+.wire-header--article { padding-bottom: 0; gap: 18px; }
+.wire-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mut);
+}
+.wire-topbar-side { display: flex; align-items: center; gap: 16px; }
+.wire-topbar-live, .wire-topbar-back { display: flex; align-items: center; gap: 8px; }
+.wire-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acc);
+  animation: wire-blink 2.2s infinite;
+  display: inline-block;
+}
+.wire-masthead {
+  border-top: 3px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  padding: 26px 0 22px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.wire-masthead--compact { padding: 14px 0 12px; flex-wrap: nowrap; }
+.wire-wordmark { margin: 0; font-size: clamp(56px, 7vw, 84px); line-height: 0.9; font-weight: 800; letter-spacing: -0.03em; }
+.wire-wordmark-md { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.wire-wordmark-sm { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.wire-wordmark em, .wire-wordmark-md em, .wire-wordmark-sm em { font-weight: 400; color: var(--acc); }
+.wire-tagline { margin: 0; max-width: 260px; font-size: 11.5px; line-height: 1.6; color: var(--mut); }
+.wire-dispatch-no { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
+.wire-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.wire-filters-label { color: var(--mut); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10.5px; margin-right: 6px; }
+
+/* lead story */
+.wire-lead { margin-top: 36px; animation: wire-rise 0.5s ease both; }
+.wire-lead-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: start; }
+.wire-lead-body { display: flex; flex-direction: column; gap: 20px; }
+.wire-kicker-row { display: flex; align-items: center; gap: 12px; }
+.wire-badge { background: var(--acc); color: var(--paper); padding: 4px 10px; }
+.wire-lead-headline {
+  margin: 0;
+  font-size: clamp(36px, 4.2vw, 54px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.wire-lead-summary { margin: 0; font-size: 19px; line-height: 1.55; color: var(--txt); max-width: 56ch; }
+.wire-readlink { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 2px solid var(--acc); padding-bottom: 3px; }
+.wire-figure-link { display: block; position: relative; }
+.wire-no-tag {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+}
+
+/* divider */
+.wire-divider { margin: 56px 0 40px; display: flex; align-items: center; gap: 16px; }
+.wire-divider--more { max-width: 1020px; margin: 64px 0 0; }
+.wire-divider-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; white-space: nowrap; }
+.wire-divider-rule { flex: 1; border-top: 1px solid var(--ink); }
+.wire-divider-count { font-size: 11px; color: var(--mut); }
+
+/* story rows */
+.wire-list { display: flex; flex-direction: column; }
+.wire-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 220px;
+  gap: 36px;
+  padding: 34px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: start;
+  animation: wire-rise 0.5s ease both;
+}
+.wire-row-no { font-size: 26px; font-weight: 600; color: var(--acc); line-height: 1; padding-top: 4px; }
+.wire-row-body { display: flex; flex-direction: column; gap: 12px; }
+.wire-row-headline { margin: 0; font-size: 28px; line-height: 1.12; font-weight: 700; letter-spacing: -0.015em; text-wrap: balance; }
+.wire-row-summary { margin: 0; font-size: 16.5px; line-height: 1.55; color: var(--txt); max-width: 62ch; }
+
+/* article page */
+.wire-article { animation: wire-rise 0.5s ease both; }
+.wire-article-head { margin: 56px 0 0; max-width: 1020px; display: flex; flex-direction: column; gap: 22px; }
+.wire-article-headline {
+  margin: 0;
+  font-size: clamp(40px, 5vw, 62px);
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.wire-standfirst { margin: 0; font-size: 21px; line-height: 1.5; color: var(--txt); font-style: italic; }
+.wire-hero { margin: 44px 0 0; position: relative; }
+.wire-figcaption { margin-top: 10px; font-size: 11px; letter-spacing: 0.1em; color: var(--mut); display: flex; justify-content: space-between; }
+.wire-body {
+  max-width: 840px;
+  margin: 56px 0 0;
+  font-size: 19.5px;
+  line-height: 1.65;
+  color: var(--txt);
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.wire-body p { margin: 0; }
+.wire-body h2, .wire-body h3 { margin: 12px 0 0; color: var(--ink); line-height: 1.15; letter-spacing: -0.015em; }
+.wire-body ul, .wire-body ol { margin: 0; padding-left: 1.4em; }
+.wire-body-inner { display: flex; flex-direction: column; gap: 26px; }
+.wire-body-inner > p:first-of-type::first-letter {
+  float: left;
+  font-size: 64px;
+  line-height: 0.82;
+  font-weight: 700;
+  color: var(--acc);
+  padding: 6px 12px 0 0;
+}
+.wire-body blockquote {
+  margin: 18px 0;
+  padding: 6px 0 6px 28px;
+  border-left: 3px solid var(--acc);
+  font-size: 26px;
+  line-height: 1.35;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink);
+}
+.wire-end {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mut);
+}
+.wire-end-rule { flex: 1; border-top: 1px solid var(--rule); }
+
+/* more on the wire */
+.wire-more { max-width: 1020px; margin: 0; }
+.wire-more-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+.wire-more-no { font-size: 18px; font-weight: 600; color: var(--acc); }
+.wire-more-body { display: flex; flex-direction: column; gap: 6px; }
+.wire-more-kicker { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
+.wire-more-title { font-size: 21px; font-weight: 600; line-height: 1.2; }
+
+/* footer */
+.wire-footer {
+  margin-top: 48px;
+  border-top: 3px solid var(--ink);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.wire-footer--article { margin-top: 72px; }
+.wire-endline { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
+
+.wire-empty { margin-top: 64px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mut); }
+
+/* responsive (not in the handoff, which is desktop-only; degrade gracefully) */
+@media (max-width: 760px) {
+  .wire-wrap { padding: 0 20px 64px; }
+  .wire-lead-grid { grid-template-columns: 1fr; gap: 28px; }
+  .wire-row { grid-template-columns: 44px 1fr; gap: 20px; }
+  .wire-row .thumb-cell { grid-column: 2; }
 }
