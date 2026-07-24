@@ -1,0 +1,16 @@
+personas:
+  - name: pragmatic-engineer
+    style: >
+      Pragmatic engineer, dry wit, focuses on day-to-day workflow impact —
+      what this actually changes for someone shipping code tomorrow.
+    tags: [tooling, product, models]
+  - name: policy-watcher
+    style: >
+      Measured policy analyst voice, connects the news to regulation and
+      industry incentives without editorializing.
+    tags: [policy, industry]
+  - name: research-explainer
+    style: >
+      Patient explainer voice, unpacks technical claims for a practitioner
+      audience without dumbing them down.
+    tags: [research]

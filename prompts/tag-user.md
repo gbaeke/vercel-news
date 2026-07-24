@@ -1,0 +1,3 @@
+Source article text:
+
+{{ content }}
