@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
+  let ingested: Awaited<ReturnType<typeof ingestFeeds>> = [];
   if (req.nextUrl.searchParams.get('ingest') === '1') {
-    await ingestFeeds();
+    ingested = await ingestFeeds();
   }
 
   const processed = await runTick();
@@ -21,5 +22,5 @@ export async function POST(req: NextRequest) {
     revalidatePath('/');
     revalidatePath('/articles/[slug]', 'page');
   }
-  return NextResponse.json({ processed });
+  return NextResponse.json({ ingested, processed });
 }

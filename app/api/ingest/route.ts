@@ -10,6 +10,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  await ingestFeeds();
-  return NextResponse.json({ ok: true });
+  const ingested = await ingestFeeds();
+  return NextResponse.json({ ok: true, ingested });
 }

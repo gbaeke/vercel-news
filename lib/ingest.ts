@@ -13,9 +13,16 @@ async function defaultFetchFeedXml(url: string): Promise<string> {
   return res.text();
 }
 
-export async function ingestFeeds(deps: IngestDeps = {}): Promise<void> {
+export interface IngestFeedResult {
+  feed: string;
+  inserted: number;
+  error?: string;
+}
+
+export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResult[]> {
   const fetchFeedXml = deps.fetchFeedXml ?? defaultFetchFeedXml;
   const parser = new Parser();
+  const results: IngestFeedResult[] = [];
 
   const feeds = await getFeeds();
   for (const feed of feeds) {
@@ -32,6 +39,7 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<void> {
       items = parsed.items ?? [];
     } catch (err) {
       console.log(`[ingest] ${feed.name}: fetch or parse failed (${(err as Error).message})`);
+      results.push({ feed: feed.name, inserted: 0, error: (err as Error).message });
       continue;
     }
 
@@ -64,5 +72,8 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<void> {
     }
 
     console.log(`[ingest] ${feed.name}: ${toInsert.length} new item(s)`);
+    results.push({ feed: feed.name, inserted: toInsert.length });
   }
+
+  return results;
 }

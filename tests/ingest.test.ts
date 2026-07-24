@@ -57,7 +57,7 @@ describe('ingestFeeds', () => {
     const okXml = rss([{ title: 'Ok Item', link: 'https://example.com/ok-1', description: 'd' }]);
     const html404 = '<!DOCTYPE html><html><body>Not Found</body></html>';
 
-    await ingestFeeds({
+    const results = await ingestFeeds({
       fetchFeedXml: async (url) => {
         const feed = feeds.find((f) => f.url === url);
         return feed?.name === brokenFeedName ? html404 : okXml;
@@ -66,5 +66,10 @@ describe('ingestFeeds', () => {
 
     const rows = await query<{ trigger_url: string }>(`SELECT trigger_url FROM articles`);
     expect(rows.map((r) => r.trigger_url)).toContain('https://example.com/ok-1');
+
+    const broken = results.find((r) => r.feed === brokenFeedName);
+    expect(broken?.inserted).toBe(0);
+    expect(broken?.error).toBeTruthy();
+    expect(results.filter((r) => !r.error).every((r) => r.inserted === 1)).toBe(true);
   });
 });

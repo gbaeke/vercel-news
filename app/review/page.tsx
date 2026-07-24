@@ -17,7 +17,11 @@ const GROUPS = [
   { title: 'Recently closed', statuses: ['published', 'declined'] },
 ];
 
-export default async function ReviewListPage() {
+export default async function ReviewListPage({
+  searchParams,
+}: {
+  searchParams: { notice?: string; error?: string };
+}) {
   const articles = await query<Article>(`SELECT * FROM articles ORDER BY updated_at DESC LIMIT 200`);
 
   return (
@@ -37,6 +41,9 @@ export default async function ReviewListPage() {
           </form>
         </div>
       </header>
+
+      {searchParams.error && <p className="error-note">{searchParams.error}</p>}
+      {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
 
       {articles.length === 0 && (
         <div className="empty-state">
