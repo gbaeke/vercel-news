@@ -1,4 +1,4 @@
-import { generateText, generateObject, jsonSchema } from 'ai';
+import { generateText, generateObject, generateImage, jsonSchema } from 'ai';
 
 // All model access goes through the Vercel AI Gateway: model ids are plain
 // "provider/model" strings and auth is the project's OIDC token (auto-set on
@@ -76,13 +76,18 @@ export async function structured<T>(system: string, user: string, schema: Record
   throw new Error('structured output missing required keys after retry');
 }
 
-// Multimodal image models (e.g. google/gemini-3.1-flash-image) return images
-// as files on a text generation result.
 export async function generateImageBytes(prompt: string): Promise<Buffer> {
   if (isFake()) throw new Error('FAKE_LLM: image generation skipped');
-  const model = process.env.IMAGE_MODEL ?? 'google/gemini-3.1-flash-image';
-  const result = await generateText({ model, prompt });
-  const image = result.files.find((f) => f.mediaType?.startsWith('image/'));
-  if (!image) throw new Error('image model returned no image');
-  return Buffer.from(image.uint8Array);
+  const model = process.env.IMAGE_MODEL ?? 'google/imagen-4.0-fast-generate-001';
+  try {
+    const { image } = await generateImage({ model, prompt });
+    return Buffer.from(image.uint8Array);
+  } catch (imageApiErr) {
+    // Multimodal chat models (e.g. google/gemini-3.1-flash-image) don't speak
+    // the image API; they return images as files on a text generation result.
+    const result = await generateText({ model, prompt });
+    const image = result.files.find((f) => f.mediaType?.startsWith('image/'));
+    if (!image) throw imageApiErr;
+    return Buffer.from(image.uint8Array);
+  }
 }
