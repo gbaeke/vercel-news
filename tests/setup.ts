@@ -10,6 +10,17 @@ import { getPool } from '../lib/db';
 beforeEach(async () => {
   const pool = getPool();
   await pool.query('TRUNCATE articles, feed_state RESTART IDENTITY CASCADE');
+  // Reset tags/feeds to the seed defaults so every test starts from a known config.
+  await pool.query('TRUNCATE tags, feeds');
+  await pool.query(
+    `INSERT INTO tags (name)
+     SELECT unnest(ARRAY['models', 'tooling', 'research', 'product', 'policy', 'industry'])`
+  );
+  await pool.query(
+    `INSERT INTO feeds (name, url) VALUES
+     ('openai', 'https://openai.com/news/rss.xml'),
+     ('anthropic', 'https://www.anthropic.com/rss.xml')`
+  );
 });
 
 afterAll(async () => {

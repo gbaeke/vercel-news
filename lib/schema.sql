@@ -29,3 +29,26 @@ CREATE TABLE IF NOT EXISTS feed_state (
   feed_name  TEXT PRIMARY KEY,
   last_url   TEXT
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+  name        TEXT PRIMARY KEY,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Seed only when the table is empty so operator deletions survive re-migration.
+INSERT INTO tags (name)
+SELECT unnest(ARRAY['models', 'tooling', 'research', 'product', 'policy', 'industry'])
+WHERE NOT EXISTS (SELECT 1 FROM tags);
+
+CREATE TABLE IF NOT EXISTS feeds (
+  name        TEXT PRIMARY KEY,
+  url         TEXT NOT NULL UNIQUE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO feeds (name, url)
+SELECT v.name, v.url FROM (VALUES
+  ('openai', 'https://openai.com/news/rss.xml'),
+  ('anthropic', 'https://www.anthropic.com/rss.xml')
+) AS v(name, url)
+WHERE NOT EXISTS (SELECT 1 FROM feeds);

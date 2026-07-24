@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getPublishedArticles } from '../lib/publicQueries';
 import { formatDate } from '../lib/format';
-import { TAGS } from '../lib/config';
+import { getTags } from '../lib/tags';
 import { Masthead, WireLine, SiteFooter, TagFilter } from './ui';
 import type { Article } from '../lib/types';
 
@@ -29,10 +29,11 @@ function StoryRow({ article }: { article: Article }) {
 }
 
 export default async function HomePage({ searchParams }: { searchParams: { tags?: string } }) {
+  const allTags = await getTags();
   const selected = (searchParams.tags ?? '')
     .split(',')
     .map((t) => t.trim())
-    .filter((t) => TAGS.includes(t));
+    .filter((t) => allTags.includes(t));
   const filtering = selected.length > 0;
 
   const articles = await getPublishedArticles(selected);
@@ -43,7 +44,7 @@ export default async function HomePage({ searchParams }: { searchParams: { tags?
   return (
     <div className="shell">
       <Masthead dateline={formatDate(new Date().toISOString())} />
-      <TagFilter selected={selected} />
+      <TagFilter tags={allTags} selected={selected} />
 
       {articles.length === 0 && (
         <div className="empty-state">

@@ -474,6 +474,54 @@ img { max-width: 100%; display: block; }
   margin-block: 1rem;
 }
 
+.notice-note {
+  border: 1.5px solid var(--ok);
+  background: var(--ok-wash);
+  color: var(--ok);
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  margin-block: 1rem;
+}
+
+.settings-list { list-style: none; margin: 0 0 1rem; padding: 0; }
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-feed-name {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.settings-feed-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+.settings-row .tag-chip { flex: 1; text-align: left; }
+.settings-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-block: 0.75rem 2rem;
+  flex-wrap: wrap;
+}
+.settings-input {
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+}
+.settings-input--wide { flex: 1; min-width: 16rem; }
+
 .source-details { margin-block: 1.5rem; }
 .source-details summary {
   font-family: var(--font-mono), monospace;

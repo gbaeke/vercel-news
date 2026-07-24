@@ -26,11 +26,16 @@ export default async function ReviewListPage() {
         <Link href="/review" className="desk-mark">
           The AI Wire — <em>Desk</em>
         </Link>
-        <form action={runTickNow}>
-          <button type="submit" className="btn">
-            Run tick now
-          </button>
-        </form>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <Link href="/review/settings" className="btn">
+            Settings
+          </Link>
+          <form action={runTickNow}>
+            <button type="submit" className="btn">
+              Run tick now
+            </button>
+          </form>
+        </div>
       </header>
 
       {articles.length === 0 && (

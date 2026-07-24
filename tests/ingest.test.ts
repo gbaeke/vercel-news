@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { query } from '../lib/db';
 import { ingestFeeds } from '../lib/ingest';
-import { FEEDS } from '../lib/feeds';
+import { getFeeds } from '../lib/feeds';
 
 function rss(items: { title: string; link: string; description: string }[]) {
   const entries = items
@@ -52,13 +52,14 @@ describe('ingestFeeds', () => {
   });
 
   it('keeps ingesting the remaining feeds when one feed returns unparseable content (e.g. a 404 HTML page)', async () => {
-    const brokenFeedName = FEEDS[FEEDS.length - 1].name;
+    const feeds = await getFeeds();
+    const brokenFeedName = feeds[feeds.length - 1].name;
     const okXml = rss([{ title: 'Ok Item', link: 'https://example.com/ok-1', description: 'd' }]);
     const html404 = '<!DOCTYPE html><html><body>Not Found</body></html>';
 
     await ingestFeeds({
       fetchFeedXml: async (url) => {
-        const feed = FEEDS.find((f) => f.url === url);
+        const feed = feeds.find((f) => f.url === url);
         return feed?.name === brokenFeedName ? html404 : okXml;
       },
     });

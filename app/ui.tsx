@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SITE_NAME, SITE_TAGLINE, TAGS } from '../lib/config';
+import { SITE_NAME, SITE_TAGLINE } from '../lib/config';
 import { formatDate } from '../lib/format';
 import type { Article } from '../lib/types';
 
@@ -39,14 +39,14 @@ function toggleHref(tag: string, selected: string[]): string {
   return next.length === 0 ? '/' : `/?tags=${next.join(',')}`;
 }
 
-export function TagFilter({ selected }: { selected: string[] }) {
+export function TagFilter({ tags, selected }: { tags: string[]; selected: string[] }) {
   return (
     <nav className="filter-bar" aria-label="Filter by tag">
       <span className="meta">filter</span>
       <Link href="/" className={`tag-chip${selected.length === 0 ? ' tag-chip--active' : ''}`}>
         all
       </Link>
-      {TAGS.map((tag) => (
+      {tags.map((tag) => (
         <Link
           key={tag}
           href={toggleHref(tag, selected)}

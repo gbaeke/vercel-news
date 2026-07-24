@@ -1,7 +1,7 @@
 import { query } from '../db';
 import { structured } from '../llm';
 import { loadPrompt } from '../prompts';
-import { TAGS } from '../config';
+import { getTags } from '../tags';
 import type { Article } from '../types';
 
 interface TagResult {
@@ -10,21 +10,28 @@ interface TagResult {
   secondary: string[];
 }
 
-const TAG_SCHEMA = {
-  type: 'object',
-  properties: {
-    relevant: { type: 'boolean' },
-    primary: { type: 'string', enum: TAGS },
-    secondary: { type: 'array', items: { type: 'string', enum: TAGS }, maxItems: 3 },
-  },
-  required: ['relevant', 'primary', 'secondary'],
-  additionalProperties: false,
-};
+function tagSchema(tags: string[]) {
+  return {
+    type: 'object',
+    properties: {
+      relevant: { type: 'boolean' },
+      primary: { type: 'string', enum: tags },
+      secondary: { type: 'array', items: { type: 'string', enum: tags }, maxItems: 3 },
+    },
+    required: ['relevant', 'primary', 'secondary'],
+    additionalProperties: false,
+  };
+}
 
 export async function tagHandler(article: Article): Promise<string> {
-  const system = loadPrompt('tag-system', { tags: TAGS.join(', ') });
+  const tags = await getTags();
+  if (tags.length === 0) {
+    throw new Error('no tags configured — add tags on the review settings page');
+  }
+
+  const system = loadPrompt('tag-system', { tags: tags.join(', ') });
   const user = loadPrompt('tag-user', { content: article.trigger_content ?? '' });
-  const result = await structured<TagResult>(system, user, TAG_SCHEMA);
+  const result = await structured<TagResult>(system, user, tagSchema(tags));
 
   // Declining is terminal — only do it on an explicit verdict. Malformed
   // output must throw (-> failed, retryable), never silently decline.

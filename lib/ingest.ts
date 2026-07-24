@@ -1,6 +1,6 @@
 import Parser from 'rss-parser';
 import { query } from './db';
-import { FEEDS, MAX_ITEMS_PER_POLL } from './feeds';
+import { getFeeds, MAX_ITEMS_PER_POLL } from './feeds';
 import { htmlToText } from './text';
 
 export interface IngestDeps {
@@ -17,7 +17,8 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<void> {
   const fetchFeedXml = deps.fetchFeedXml ?? defaultFetchFeedXml;
   const parser = new Parser();
 
-  for (const feed of FEEDS) {
+  const feeds = await getFeeds();
+  for (const feed of feeds) {
     const [state] = await query<{ last_url: string | null }>(
       `SELECT last_url FROM feed_state WHERE feed_name = $1`,
       [feed.name]
