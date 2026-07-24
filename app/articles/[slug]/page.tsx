@@ -21,6 +21,14 @@ function readMinutes(contentMd: string | null): number {
   return Math.max(1, Math.round(words / 200));
 }
 
+function sourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return 'source';
+  }
+}
+
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   const article = await getPublishedArticleBySlug(params.slug);
 
@@ -85,6 +93,11 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
         <div className="wire-body">
           <div className="wire-body-inner" dangerouslySetInnerHTML={{ __html: article.content_html ?? '' }} />
+          <p className="mono wire-source">
+            <a href={article.trigger_url} target="_blank" rel="noopener noreferrer" className="wire-readlink">
+              Read the original at {sourceHost(article.trigger_url)} →
+            </a>
+          </p>
           <div className="mono wire-end">
             <span className="wire-end-rule" />
             <span>End of dispatch</span>

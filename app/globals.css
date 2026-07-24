@@ -802,6 +802,8 @@ img { max-width: 100%; display: block; }
   font-style: italic;
   color: var(--ink);
 }
+.wire-source { margin: 8px 0 0; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+
 .wire-end {
   display: flex;
   align-items: center;
