@@ -50,4 +50,30 @@ describe('thumbnailHandler', () => {
     });
     expect(to).toBe('in_review');
   });
+
+  it('notifies the reviewer when a written article reaches in_review', async () => {
+    const article = await insertArticle('written');
+    const notify = vi.fn(async () => true);
+    await thumbnailHandler(article as any, {
+      generateImage: async () => Buffer.from('fake-image-bytes'),
+      uploadBlob: async () => 'https://blob.example.com/generated.png',
+      notify,
+    });
+    expect(notify).toHaveBeenCalledOnce();
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({ id: article.id }),
+      'https://blob.example.com/generated.png'
+    );
+  });
+
+  it('does not notify again on image regeneration', async () => {
+    const article = await insertArticle('image_requested');
+    const notify = vi.fn(async () => true);
+    await thumbnailHandler(article as any, {
+      generateImage: async () => Buffer.from('new-image-bytes'),
+      uploadBlob: async () => 'https://blob.example.com/new.png',
+      notify,
+    });
+    expect(notify).not.toHaveBeenCalled();
+  });
 });
