@@ -14,6 +14,26 @@ describe('publicQueries', () => {
     expect(articles.map((a) => a.slug)).toEqual(['newer', 'older']);
   });
 
+  it('filters by tags matching primary OR secondary (any of the given tags)', async () => {
+    await query(
+      `INSERT INTO articles (source_feed, trigger_url, status, slug, tags, published_at)
+       VALUES
+         ('openai','https://example.com/t1','published','models-primary', '{"primary":"models","secondary":[]}', now()),
+         ('openai','https://example.com/t2','published','models-secondary', '{"primary":"product","secondary":["models","tooling"]}', now() - interval '1 hour'),
+         ('openai','https://example.com/t3','published','policy-only', '{"primary":"policy","secondary":[]}', now() - interval '2 hours'),
+         ('openai','https://example.com/t4','published','untagged', null, now() - interval '3 hours')`
+    );
+
+    const models = await getPublishedArticles(['models']);
+    expect(models.map((a) => a.slug)).toEqual(['models-primary', 'models-secondary']);
+
+    const multi = await getPublishedArticles(['models', 'policy']);
+    expect(multi.map((a) => a.slug)).toEqual(['models-primary', 'models-secondary', 'policy-only']);
+
+    const all = await getPublishedArticles();
+    expect(all.length).toBe(4);
+  });
+
   it('fetches one published article by slug, or null if not published', async () => {
     await query(
       `INSERT INTO articles (source_feed, trigger_url, status, slug, published_at)

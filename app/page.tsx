@@ -1,22 +1,58 @@
 import Link from 'next/link';
 import { getPublishedArticles } from '../lib/publicQueries';
 import { formatDate } from '../lib/format';
-import { Masthead, WireLine, SiteFooter } from './ui';
+import { TAGS } from '../lib/config';
+import { Masthead, WireLine, SiteFooter, TagFilter } from './ui';
+import type { Article } from '../lib/types';
 
-export const revalidate = 300;
+// Reading searchParams makes this page render per-request; at personal
+// traffic levels the spec explicitly blesses dynamic rendering (§9).
+export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
-  const articles = await getPublishedArticles();
-  const [lead, ...rest] = articles;
+function StoryRow({ article }: { article: Article }) {
+  return (
+    <li className="story-row">
+      <div>
+        <WireLine article={article} />
+        <h3 className="story-headline">
+          <Link href={`/articles/${article.slug}`}>{article.title}</Link>
+        </h3>
+        <p className="story-teaser">{article.summary}</p>
+      </div>
+      {article.thumbnail_url && (
+        <Link href={`/articles/${article.slug}`}>
+          <img className="print-block story-thumb" src={article.thumbnail_url} alt="" />
+        </Link>
+      )}
+    </li>
+  );
+}
+
+export default async function HomePage({ searchParams }: { searchParams: { tags?: string } }) {
+  const selected = (searchParams.tags ?? '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => TAGS.includes(t));
+  const filtering = selected.length > 0;
+
+  const articles = await getPublishedArticles(selected);
+  // Filtered views are flat lists; the lead-story hero is only for the front page.
+  const lead = filtering ? null : (articles[0] ?? null);
+  const rows = filtering ? articles : articles.slice(1);
 
   return (
     <div className="shell">
       <Masthead dateline={formatDate(new Date().toISOString())} />
+      <TagFilter selected={selected} />
 
-      {!lead && (
+      {articles.length === 0 && (
         <div className="empty-state">
-          <span className="meta">wire idle</span>
-          <p>Nothing on the wire yet. Approved stories appear here.</p>
+          <span className="meta">{filtering ? 'no matches' : 'wire idle'}</span>
+          <p>
+            {filtering
+              ? `Nothing filed under ${selected.join(' or ')} yet.`
+              : 'Nothing on the wire yet. Approved stories appear here.'}
+          </p>
         </div>
       )}
 
@@ -39,25 +75,14 @@ export default async function HomePage() {
         </article>
       )}
 
-      {rest.length > 0 && (
+      {rows.length > 0 && (
         <>
-          <h2 className="section-head">Latest on the wire</h2>
+          <h2 className="section-head">
+            {filtering ? `Filed under ${selected.join(' or ')} (${articles.length})` : 'Latest on the wire'}
+          </h2>
           <ul className="wire-list">
-            {rest.map((a) => (
-              <li key={a.id} className="story-row">
-                <div>
-                  <WireLine article={a} />
-                  <h3 className="story-headline">
-                    <Link href={`/articles/${a.slug}`}>{a.title}</Link>
-                  </h3>
-                  <p className="story-teaser">{a.summary}</p>
-                </div>
-                {a.thumbnail_url && (
-                  <Link href={`/articles/${a.slug}`}>
-                    <img className="print-block story-thumb" src={a.thumbnail_url} alt="" />
-                  </Link>
-                )}
-              </li>
+            {rows.map((a) => (
+              <StoryRow key={a.id} article={a} />
             ))}
           </ul>
         </>
