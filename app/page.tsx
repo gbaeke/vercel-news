@@ -25,17 +25,36 @@ function matchesTag(article: Article, tag: string): boolean {
   return article.tags?.primary === tag || (article.tags?.secondary ?? []).includes(tag);
 }
 
-export default async function HomePage({ searchParams }: { searchParams: { tag?: string } }) {
+const PAGE_SIZE = 10;
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { tag?: string; page?: string };
+}) {
   const [articles, allTags] = await Promise.all([getPublishedArticles(), getTags()]);
   const active = allTags.includes(searchParams.tag ?? '') ? searchParams.tag! : 'all';
 
   // Newest article is the lead; dispatch numbers count up from the oldest.
   const total = articles.length;
-  const lead = articles[0] ?? null;
-  const rows = articles
+  const allRows = articles
     .slice(1)
     .map((article, i) => ({ article, no: total - 1 - i }))
     .filter(({ article }) => active === 'all' || matchesTag(article, active));
+
+  const pages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.max(1, Number(searchParams.page) || 1));
+  const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // The lead-story hero only runs on the front page.
+  const lead = page === 1 ? (articles[0] ?? null) : null;
+
+  const pageHref = (p: number) => {
+    const qs = new URLSearchParams();
+    if (active !== 'all') qs.set('tag', active);
+    if (p > 1) qs.set('page', String(p));
+    const s = qs.toString();
+    return s ? `/?${s}` : '/';
+  };
 
   return (
     <WireShell>
@@ -58,7 +77,7 @@ export default async function HomePage({ searchParams }: { searchParams: { tag?:
         </nav>
       </header>
 
-      {!lead && (
+      {total === 0 && (
         <p className="mono wire-empty">Wire idle — nothing on the wire yet. Approved stories appear here.</p>
       )}
 
@@ -93,12 +112,16 @@ export default async function HomePage({ searchParams }: { searchParams: { tag?:
         </section>
       )}
 
-      {lead && (
+      {total > 0 && (
         <>
           <div className="wire-divider">
-            <span className="mono wire-divider-label">Latest on the wire</span>
+            <span className="mono wire-divider-label">
+              {page === 1 ? 'Latest on the wire' : 'From the archive'}
+            </span>
             <span className="wire-divider-rule" />
-            <span className="mono wire-divider-count">{pad2(rows.length + 1)} dispatches</span>
+            <span className="mono wire-divider-count">
+              {pad2(allRows.length + 1)} dispatches{pages > 1 ? ` · page ${pad2(page)} / ${pad2(pages)}` : ''}
+            </span>
           </div>
 
           <section className="wire-list">
@@ -120,6 +143,25 @@ export default async function HomePage({ searchParams }: { searchParams: { tag?:
               </article>
             ))}
           </section>
+
+          {pages > 1 && (
+            <nav className="mono wire-pager" aria-label="Pages">
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} className="wire-readlink">
+                  ← Newer dispatches
+                </Link>
+              ) : (
+                <span className="dim">← Newer dispatches</span>
+              )}
+              {page < pages ? (
+                <Link href={pageHref(page + 1)} className="wire-readlink">
+                  Older dispatches →
+                </Link>
+              ) : (
+                <span className="dim">Older dispatches →</span>
+              )}
+            </nav>
+          )}
         </>
       )}
 

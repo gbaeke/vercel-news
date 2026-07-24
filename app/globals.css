@@ -845,6 +845,15 @@ img { max-width: 100%; display: block; }
 
 .wire-empty { margin-top: 64px; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mut); }
 
+.wire-pager {
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 /* responsive (not in the handoff, which is desktop-only; degrade gracefully) */
 @media (max-width: 760px) {
   .wire-wrap { padding: 0 20px 64px; }
