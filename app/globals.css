@@ -126,6 +126,39 @@ img { max-width: 100%; display: block; }
 }
 .wire-line .sep { color: var(--line); }
 
+/* ——— tag filter ——— */
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  padding-block: 1rem 0.25rem;
+}
+.filter-bar .meta { margin-right: 0.35rem; }
+.tag-chip {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--ink-soft);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 0.28em 0.85em;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.tag-chip:hover { color: var(--riso); border-color: var(--riso); }
+.tag-chip--active {
+  color: var(--paper);
+  background: var(--riso);
+  border-color: var(--riso);
+}
+.tag-chip--active:hover { color: var(--paper); background: var(--riso-deep); }
+
+.wire-tag { color: inherit; text-decoration: none; }
+.wire-tag:hover { text-decoration: underline; }
+
 /* ——— home: lead story + wire list ——— */
 
 .lead {

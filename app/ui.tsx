@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { SITE_NAME, SITE_TAGLINE } from '../lib/config';
+import { SITE_NAME, SITE_TAGLINE, TAGS } from '../lib/config';
 import { formatDate } from '../lib/format';
 import type { Article } from '../lib/types';
 
@@ -23,12 +23,39 @@ export function WireLine({ article }: { article: Article }) {
       <span className="sep">▸</span>
       {article.tags?.primary && (
         <>
-          <span>{article.tags.primary}</span>
+          <Link href={`/?tags=${article.tags.primary}`} className="wire-tag">
+            {article.tags.primary}
+          </Link>
           <span className="sep">·</span>
         </>
       )}
       <span>filed {formatDate(article.published_at ?? article.created_at)}</span>
     </p>
+  );
+}
+
+function toggleHref(tag: string, selected: string[]): string {
+  const next = selected.includes(tag) ? selected.filter((t) => t !== tag) : [...selected, tag];
+  return next.length === 0 ? '/' : `/?tags=${next.join(',')}`;
+}
+
+export function TagFilter({ selected }: { selected: string[] }) {
+  return (
+    <nav className="filter-bar" aria-label="Filter by tag">
+      <span className="meta">filter</span>
+      <Link href="/" className={`tag-chip${selected.length === 0 ? ' tag-chip--active' : ''}`}>
+        all
+      </Link>
+      {TAGS.map((tag) => (
+        <Link
+          key={tag}
+          href={toggleHref(tag, selected)}
+          className={`tag-chip${selected.includes(tag) ? ' tag-chip--active' : ''}`}
+        >
+          {tag}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
