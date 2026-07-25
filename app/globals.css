@@ -22,26 +22,31 @@
   --warn-wash: rgba(166, 106, 18, 0.12);
   --bad: #b23327;
   --bad-wash: rgba(178, 51, 39, 0.1);
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #171310;
-    --paper-2: #211C17;
-    --ink: #EDE7DB;
-    --ink-soft: #97907F;
-    --line: rgba(237, 231, 219, 0.25);
-    --riso: #E0603F;
-    --riso-deep: #E97C5F;
-    --riso-wash: rgba(224, 96, 63, 0.12);
-    --grain-dot: rgba(237, 231, 219, 0.05);
-    --ok: #57b586;
-    --ok-wash: rgba(87, 181, 134, 0.14);
-    --warn: #d9a04a;
-    --warn-wash: rgba(217, 160, 74, 0.15);
-    --bad: #e07a6d;
-    --bad-wash: rgba(224, 122, 109, 0.14);
-  }
+/* The desk follows the wire's night toggle — same `night` class on <html>
+   (set before first paint in layout.tsx), so one switch governs the whole
+   site. This replaced a prefers-color-scheme block: the desk no longer keys
+   off the OS appearance, since two independent sources of truth is exactly
+   what made the desk look stuck in light mode. */
+:root.night {
+  --paper: #171310;
+  --paper-2: #211C17;
+  --ink: #EDE7DB;
+  --ink-soft: #97907F;
+  --line: rgba(237, 231, 219, 0.25);
+  --riso: #E0603F;
+  --riso-deep: #E97C5F;
+  --riso-wash: rgba(224, 96, 63, 0.12);
+  --grain-dot: rgba(237, 231, 219, 0.05);
+  --ok: #57b586;
+  --ok-wash: rgba(87, 181, 134, 0.14);
+  --warn: #d9a04a;
+  --warn-wash: rgba(217, 160, 74, 0.15);
+  --bad: #e07a6d;
+  --bad-wash: rgba(224, 122, 109, 0.14);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
