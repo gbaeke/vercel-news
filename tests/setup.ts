@@ -9,7 +9,7 @@ import { getPool } from '../lib/db';
 
 beforeEach(async () => {
   const pool = getPool();
-  await pool.query('TRUNCATE articles, feed_state RESTART IDENTITY CASCADE');
+  await pool.query('TRUNCATE articles, feed_state, deleted_urls RESTART IDENTITY CASCADE');
   // Reset tags/feeds to the seed defaults so every test starts from a known config.
   await pool.query('TRUNCATE tags, feeds');
   await pool.query(

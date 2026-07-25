@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { query } from '../lib/db';
 import { ingestFeeds } from '../lib/ingest';
 import { getFeeds } from '../lib/feeds';
+import { deleteArticleById } from '../lib/reviewActions';
 
 function rss(items: { title: string; link: string; description: string }[]) {
   const entries = items
@@ -49,6 +50,35 @@ describe('ingestFeeds', () => {
 
     const rows = await query(`SELECT trigger_url FROM articles`);
     expect(rows.length).toBe(2);
+  });
+
+  // The unique constraint on trigger_url is not enough: once the row is gone a
+  // feed that reorders the item back above the last-seen marker would re-ingest
+  // it. The suppression list is what makes a delete permanent.
+  it('never re-inserts a URL the operator deleted, even when the feed reorders it to the top', async () => {
+    const first = rss([
+      { title: 'Newest', link: 'https://example.com/keep', description: 'd' },
+      { title: 'Older', link: 'https://example.com/killed', description: 'd' },
+    ]);
+    await ingestFeeds({ fetchFeedXml: async () => first });
+
+    const [doomed] = await query<{ id: number }>(
+      `SELECT id FROM articles WHERE trigger_url = 'https://example.com/killed' LIMIT 1`
+    );
+    await deleteArticleById(doomed.id);
+
+    // Same two items, but the deleted one is now newest — so the last-seen
+    // marker no longer shields it.
+    const reordered = rss([
+      { title: 'Older', link: 'https://example.com/killed', description: 'd' },
+      { title: 'Newest', link: 'https://example.com/keep', description: 'd' },
+    ]);
+    await ingestFeeds({ fetchFeedXml: async () => reordered });
+
+    const rows = await query<{ trigger_url: string }>(
+      `SELECT trigger_url FROM articles WHERE trigger_url = 'https://example.com/killed'`
+    );
+    expect(rows).toEqual([]);
   });
 
   it('keeps ingesting the remaining feeds when one feed returns unparseable content (e.g. a 404 HTML page)', async () => {

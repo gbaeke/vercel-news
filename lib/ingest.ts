@@ -13,6 +13,17 @@ async function defaultFetchFeedXml(url: string): Promise<string> {
   return res.text();
 }
 
+type FeedItem = { link?: string };
+
+async function withoutDeleted<T extends FeedItem>(items: T[]): Promise<T[]> {
+  const links = items.map((i) => i.link).filter((l): l is string => Boolean(l));
+  if (links.length === 0) return items;
+  const rows = await query<{ url: string }>(`SELECT url FROM deleted_urls WHERE url = ANY($1)`, [links]);
+  if (rows.length === 0) return items;
+  const deleted = new Set(rows.map((r) => r.url));
+  return items.filter((i) => !i.link || !deleted.has(i.link));
+}
+
 export interface IngestFeedResult {
   feed: string;
   inserted: number;
@@ -49,7 +60,10 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResu
       fresh.push(item);
     }
 
-    const toInsert = fresh.slice(0, MAX_ITEMS_PER_POLL);
+    // Drop operator-deleted URLs before the cap so a tombstoned item never
+    // costs a real story its slot in this poll.
+    const live = await withoutDeleted(fresh);
+    const toInsert = live.slice(0, MAX_ITEMS_PER_POLL);
 
     for (const item of toInsert.slice().reverse()) {
       if (!item.link) continue;

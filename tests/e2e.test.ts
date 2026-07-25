@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { query } from '../lib/db';
 import { ingestFeeds } from '../lib/ingest';
 import { runTick } from '../lib/tick';
-import { approveArticleById } from '../lib/reviewActions';
+import { approveArticleById, unpublishArticleById, deleteArticleById } from '../lib/reviewActions';
 import { getPublishedArticleBySlug } from '../lib/publicQueries';
 
 vi.mock('../lib/handlers/scrape', async (importOriginal) => {
@@ -69,5 +69,57 @@ describe('end-to-end pipeline (FAKE_LLM=1)', () => {
 
     const publicArticle = await getPublishedArticleBySlug(published.slug);
     expect(publicArticle?.slug).toBe(published.slug);
+  });
+
+  it('unpublishes back to the desk, sits out the next tick, and re-publishes to the same URL', async () => {
+    process.env.FAKE_LLM = '1';
+    const xml = rss([{ title: 'Second Thoughts', link: 'https://example.com/e2e-3', description: 'Pulled back.' }]);
+    await ingestFeeds({ fetchFeedXml: async () => xml });
+    await runTick();
+
+    const [article] = await query<{ id: number }>(
+      `SELECT id FROM articles WHERE trigger_url = 'https://example.com/e2e-3'`
+    );
+    await approveArticleById(article.id);
+    await runTick();
+    const [live] = await query<{ slug: string }>(`SELECT slug FROM articles WHERE id = $1`, [article.id]);
+
+    await unpublishArticleById(article.id);
+    expect(await getPublishedArticleBySlug(live.slug)).toBeNull();
+
+    // in_review has no handler, so the tick must leave it alone rather than
+    // dragging it back through the pipeline.
+    await runTick();
+    const [waiting] = await query<{ status: string }>(`SELECT status FROM articles WHERE id = $1`, [article.id]);
+    expect(waiting.status).toBe('in_review');
+
+    await approveArticleById(article.id);
+    await runTick();
+    const [republished] = await query<{ status: string; slug: string }>(
+      `SELECT status, slug FROM articles WHERE id = $1`, [article.id]
+    );
+    expect(republished.status).toBe('published');
+    expect(republished.slug).toBe(live.slug);
+  });
+
+  it('a deleted article is gone for good — the next ingest and tick do not bring it back', async () => {
+    process.env.FAKE_LLM = '1';
+    const xml = rss([{ title: 'Never Again', link: 'https://example.com/e2e-4', description: 'Deleted.' }]);
+    await ingestFeeds({ fetchFeedXml: async () => xml });
+    await runTick();
+
+    const [article] = await query<{ id: number }>(
+      `SELECT id FROM articles WHERE trigger_url = 'https://example.com/e2e-4'`
+    );
+    await deleteArticleById(article.id);
+
+    // Wipe the last-seen marker: even a feed that looks brand new must not
+    // resurrect the story.
+    await query(`DELETE FROM feed_state`);
+    await ingestFeeds({ fetchFeedXml: async () => xml });
+    await runTick();
+
+    const rows = await query(`SELECT id FROM articles WHERE trigger_url = 'https://example.com/e2e-4'`);
+    expect(rows).toEqual([]);
   });
 });

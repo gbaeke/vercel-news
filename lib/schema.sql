@@ -25,6 +25,14 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 CREATE INDEX IF NOT EXISTS articles_status_idx ON articles (status, updated_at);
 
+-- Trigger URLs the operator deleted for good. The unique constraint on
+-- articles.trigger_url stops re-ingest only while the row exists, so a delete
+-- leaves a tombstone here and ingest skips anything listed.
+CREATE TABLE IF NOT EXISTS deleted_urls (
+  url         TEXT PRIMARY KEY,
+  deleted_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS feed_state (
   feed_name  TEXT PRIMARY KEY,
   last_url   TEXT

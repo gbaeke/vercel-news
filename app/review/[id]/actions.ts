@@ -11,6 +11,7 @@ import {
   declineArticleById,
   retryArticleById,
   unpublishArticleById,
+  deleteArticleById,
 } from '../../../lib/reviewActions';
 
 export async function approveArticle(id: number) {
@@ -45,6 +46,16 @@ export async function unpublishArticle(id: number) {
   revalidatePath('/');
   revalidatePath('/articles/[slug]', 'page');
   revalidatePath('/review');
+}
+
+// The detail page is gone once the row is, so land the operator back on the
+// desk with a receipt instead of a 404.
+export async function deleteArticle(id: number) {
+  await deleteArticleById(id);
+  revalidatePath('/');
+  revalidatePath('/articles/[slug]', 'page');
+  revalidatePath('/review');
+  redirect(`/review?notice=${encodeURIComponent(`article #${id} deleted — it will not be ingested again`)}`);
 }
 
 export async function runTickNow() {

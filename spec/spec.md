@@ -71,6 +71,8 @@ new ──► scraped ──► tagged ──► written ──► in_review ─
                      └──────────► (both return to in_review)
 
 in_review ──► declined                (terminal)
+published ──unpublish──► in_review    (back on the desk, slug kept)
+any status ──delete──► row gone, trigger_url tombstoned in deleted_urls
 any stage ──► failed  ──retry──► back to the status it failed from
 ```
 
@@ -84,8 +86,8 @@ any stage ──► failed  ──retry──► back to the status it failed fr
 | `rewrite_requested` | Reviewer left feedback; needs a rewrite pass            | worker                               |
 | `image_requested`   | Reviewer wants a new thumbnail                          | worker                               |
 | `approved`          | Human approved; publish step pending                    | worker                               |
-| `published`         | Live on the public site                                 | — (terminal, but unpublish allowed) |
-| `declined`          | Human rejected                                          | — (terminal)                        |
+| `published`         | Live on the public site                                 | — (unpublish returns it to `in_review`) |
+| `declined`          | Human rejected                                          | — (terminal; delete to clear it out) |
 | `failed`            | A stage threw; error text stored on the row             | human retry                          |
 
 Rules:
@@ -370,7 +372,8 @@ collapsible block), and error text if failed.
 | New image                  | `status = 'image_requested'`                                                     |
 | Decline                    | `status = 'declined'`                                                            |
 | Retry (failed only)        | `status = failed_from`, clear error                                              |
-| Unpublish (published only) | `status = 'declined'`, clear `published_at`                                    |
+| Unpublish (published only) | `status = 'in_review'`, clear `published_at` (slug kept, so re-approving restores the same URL) |
+| Delete permanently (any status) | row deleted, `trigger_url` recorded in `deleted_urls` so ingest never re-creates it |
 | Run tick now               | calls the tick logic inline — so you never wait for the scheduler while reviewing |
 
 **Publish handler** (`approved → published`): generate `seo_summary` (≤155

@@ -8,6 +8,7 @@ import {
   declineArticleById,
   retryArticleById,
   unpublishArticleById,
+  deleteArticleById,
 } from '../lib/reviewActions';
 
 async function insertArticle(status: string, extra: Record<string, any> = {}) {
@@ -75,13 +76,46 @@ describe('review actions', () => {
     expect(row.error).toBeNull();
   });
 
-  it('unpublish sets status=declined and clears published_at', async () => {
+  it('unpublish returns the article to review and clears published_at', async () => {
     const id = await insertArticle('published', { published_at: new Date().toISOString() });
     await unpublishArticleById(id);
     const [row] = await query<{ status: string; published_at: string | null }>(
       `SELECT status, published_at FROM articles WHERE id=$1`, [id]
     );
-    expect(row.status).toBe('declined');
+    expect(row.status).toBe('in_review');
     expect(row.published_at).toBeNull();
+  });
+
+  it('unpublish keeps the slug so re-publishing restores the same URL', async () => {
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, title, slug, status, published_at)
+       VALUES ('openai', 'https://example.com/keep-slug', 'Kept', 'kept-title', 'published', now())
+       RETURNING id`
+    );
+    await unpublishArticleById(rows[0].id);
+    const [row] = await query<{ slug: string | null }>(`SELECT slug FROM articles WHERE id=$1`, [rows[0].id]);
+    expect(row.slug).toBe('kept-title');
+  });
+
+  it('delete removes the row for good', async () => {
+    const id = await insertArticle('declined');
+    await deleteArticleById(id);
+    const rows = await query(`SELECT id FROM articles WHERE id=$1`, [id]);
+    expect(rows.length).toBe(0);
+  });
+
+  it('delete records the trigger URL so ingest can never re-create it', async () => {
+    const id = await insertArticle('published', { published_at: new Date().toISOString() });
+    await deleteArticleById(id);
+    const rows = await query<{ url: string }>(`SELECT url FROM deleted_urls`);
+    expect(rows.map((r) => r.url)).toEqual(['https://example.com/rv']);
+  });
+
+  it('delete is idempotent for an id that is already gone', async () => {
+    const id = await insertArticle('declined');
+    await deleteArticleById(id);
+    await expect(deleteArticleById(id)).resolves.toBeUndefined();
+    const rows = await query(`SELECT url FROM deleted_urls`);
+    expect(rows.length).toBe(1);
   });
 });

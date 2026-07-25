@@ -41,9 +41,26 @@ export async function retryArticleById(id: number): Promise<void> {
   );
 }
 
+// Unpublish pulls the story off the site and back onto the desk, so it can be
+// rewritten, re-imaged, re-approved or declined. The slug is kept on purpose —
+// publishHandler reuses it, so re-approving restores the same public URL.
 export async function unpublishArticleById(id: number): Promise<void> {
   await query(
-    `UPDATE articles SET status = 'declined', published_at = NULL, updated_at = now() WHERE id = $1`,
+    `UPDATE articles SET status = 'in_review', published_at = NULL, updated_at = now() WHERE id = $1`,
+    [id]
+  );
+}
+
+// Permanent: the row goes, and the trigger URL is tombstoned in one statement
+// so ingest can never bring the story back on a later tick.
+export async function deleteArticleById(id: number): Promise<void> {
+  await query(
+    `WITH gone AS (
+       DELETE FROM articles WHERE id = $1 RETURNING trigger_url
+     )
+     INSERT INTO deleted_urls (url)
+     SELECT trigger_url FROM gone
+     ON CONFLICT (url) DO NOTHING`,
     [id]
   );
 }

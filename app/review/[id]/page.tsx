@@ -10,6 +10,7 @@ import {
   declineArticle,
   retryArticle,
   unpublishArticle,
+  deleteArticle,
 } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,7 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
   const retry = retryArticle.bind(null, article.id);
   const unpublish = unpublishArticle.bind(null, article.id);
   const rewrite = requestRewrite.bind(null, article.id);
+  const remove = deleteArticle.bind(null, article.id);
 
   return (
     <div className="shell">
@@ -157,16 +159,35 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
           )}
           {article.status === 'published' && (
             <form action={unpublish}>
-              <button type="submit" className="btn btn--danger btn--wide">
-                Unpublish
+              <button type="submit" className="btn btn--wide">
+                Unpublish → back to review
               </button>
+              <p className="meta" style={{ margin: '0.4rem 0 0' }}>
+                Pulls it off the site and onto the desk. The slug is kept, so
+                re-approving restores the same URL.
+              </p>
             </form>
           )}
           {!['in_review', 'failed', 'published'].includes(article.status) && (
             <p className="meta" style={{ margin: 0 }}>
-              In the pipeline — nothing to do until it reaches review.
+              {article.status === 'declined'
+                ? 'Declined — it will not run again. Delete it below to clear it out.'
+                : 'In the pipeline — nothing to do until it reaches review.'}
             </p>
           )}
+
+          <details className="source-details" style={{ margin: '0.5rem 0 0' }}>
+            <summary>Danger zone</summary>
+            <p className="meta" style={{ margin: '0.6rem 0', textTransform: 'none' }}>
+              Deletes the article for good and remembers the source URL, so the
+              next tick will not ingest it again. Cannot be undone.
+            </p>
+            <form action={remove}>
+              <button type="submit" className="btn btn--danger btn--wide">
+                Delete permanently
+              </button>
+            </form>
+          </details>
 
           <div className="desk-meta meta">
             <div>
