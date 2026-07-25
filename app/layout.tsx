@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
   description: SITE_TAGLINE,
   appleWebApp: { capable: true, title: 'AI Wire', statusBarStyle: 'default' },
+  // iOS reads the apple-prefixed name; Chrome deprecated it in favour of the
+  // standardised one and warns in the console. Ship both.
+  other: { 'mobile-web-app-capable': 'yes' },
 };
 
 // Paper and night-mode paper, so the iOS status bar matches the page. This
@@ -22,9 +25,17 @@ export const viewport: Viewport = {
   ],
 };
 
+// Applies the persisted night theme before first paint. It goes on <html>
+// because the root layout is never re-rendered — client-side navigations
+// cannot drop it, so the wire never flashes light on the way to a new page.
+const THEME_SCRIPT = `try{if(localStorage.getItem('aiwire-theme')==='night')document.documentElement.classList.add('night')}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${body.variable} ${mono.variable}`}>
+    <html lang="en" className={`${body.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>{children}</body>
     </html>
   );

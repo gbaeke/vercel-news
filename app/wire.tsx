@@ -5,14 +5,12 @@ import { ThemeToggle } from './wire-theme';
 export const pad2 = (n: number) => String(n).padStart(2, '0');
 export const pad3 = (n: number) => String(n).padStart(3, '0');
 
-// Applies the persisted night theme before first paint (no flash); the class
-// survives hydration via suppressHydrationWarning on the wrapper.
-const THEME_SCRIPT = `try{if(localStorage.getItem('aiwire-theme')==='night')document.getElementById('wire-root').classList.add('night')}catch(e){}`;
-
+// The night class lives on <html>, applied by the root layout before first
+// paint. It must NOT live here: React rebuilds this node on every client-side
+// navigation, which dropped the class and flashed light mode for a frame.
 export function WireShell({ children }: { children: React.ReactNode }) {
   return (
-    <div id="wire-root" className="wire" suppressHydrationWarning>
-      <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+    <div className="wire">
       <div className="wire-wrap">{children}</div>
     </div>
   );

@@ -1,36 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 const KEY = 'aiwire-theme';
 
+// No React state on purpose. The theme is a class on <html> (set before first
+// paint by the root layout, flipped here) and the label is chosen in CSS from
+// that same class — so nothing has to catch up after a render or a navigation.
 export function ThemeToggle() {
-  const [night, setNight] = useState(false);
-
-  // The inline script in WireShell applies the saved theme before paint on
-  // full page loads, but it does not run on client-side navigations — so
-  // re-apply the class here on every mount, and sync the button label.
-  useEffect(() => {
-    let saved = false;
-    try {
-      saved = localStorage.getItem(KEY) === 'night';
-    } catch {}
-    setNight(saved);
-    document.getElementById('wire-root')?.classList.toggle('night', saved);
-  }, []);
-
   function toggle() {
-    const next = !night;
-    setNight(next);
-    document.getElementById('wire-root')?.classList.toggle('night', next);
+    const night = document.documentElement.classList.toggle('night');
     try {
-      localStorage.setItem(KEY, next ? 'night' : 'day');
+      localStorage.setItem(KEY, night ? 'night' : 'day');
     } catch {}
   }
 
   return (
     <button type="button" className="pill pill--toggle" onClick={toggle}>
-      {night ? '☀ day mode' : '☾ night mode'}
+      <span className="theme-label theme-label--night">☾ night mode</span>
+      <span className="theme-label theme-label--day">☀ day mode</span>
     </button>
   );
 }

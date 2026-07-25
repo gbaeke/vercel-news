@@ -603,8 +603,9 @@ img { max-width: 100%; display: block; }
 /* ============================================================
    The wire restyle (public pages) — see restyle-handoff/
    All tokens scoped to .wire so the review desk keeps its own
-   :root palette. Night mode = .wire.night, persisted client-side
-   under localStorage "aiwire-theme".
+   :root palette. Night mode = a `night` class on <html> (see the
+   pre-paint script in layout.tsx), persisted client-side under
+   localStorage "aiwire-theme".
    ============================================================ */
 
 .wire {
@@ -625,7 +626,7 @@ img { max-width: 100%; display: block; }
   min-height: 100vh;
   transition: background-color 0.35s ease, color 0.35s ease;
 }
-.wire.night {
+.night .wire {
   --paper: #171310;
   --ink: #EDE7DB;
   --mut: #97907F;
@@ -662,6 +663,12 @@ img { max-width: 100%; display: block; }
 .wire .pill:hover { border-color: var(--ink); color: var(--ink); }
 .wire .pill.on { border-color: var(--ink); background: var(--ink); color: var(--paper); }
 .wire .pill--toggle { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; }
+/* The button offers the theme you are not in. Chosen in CSS from the same
+   <html> class as the palette, so the label can never disagree with the page
+   or lag a frame behind a navigation. */
+.theme-label--day { display: none; }
+.night .theme-label--night { display: none; }
+.night .theme-label--day { display: inline; }
 .wire img.thumb { width: 100%; display: block; border: 1px solid var(--ink); filter: saturate(0.92); }
 
 /* header */
