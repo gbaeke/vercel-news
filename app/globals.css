@@ -617,6 +617,7 @@ img { max-width: 100%; display: block; }
   --rule: rgba(25, 23, 19, 0.25);
   --dot: rgba(25, 23, 19, 0.035);
   --soft: rgba(25, 23, 19, 0.3);
+  --code: rgba(25, 23, 19, 0.055);
   color-scheme: light;
   font-family: var(--font-body), 'Newsreader', serif;
   background-color: var(--paper);
@@ -635,6 +636,7 @@ img { max-width: 100%; display: block; }
   --rule: rgba(237, 231, 219, 0.25);
   --dot: rgba(237, 231, 219, 0.05);
   --soft: rgba(237, 231, 219, 0.3);
+  --code: rgba(237, 231, 219, 0.07);
   color-scheme: dark;
 }
 
@@ -811,6 +813,41 @@ img { max-width: 100%; display: block; }
   font-style: italic;
   color: var(--ink);
 }
+/* Code. The public restyle never covered <pre>, so a long line escaped the
+   paper, sat on the bare page background and pushed the whole document
+   sideways. The block is now its own horizontal scroll container. */
+.wire-body pre {
+  margin: 0;
+  padding: 16px 18px;
+  background: var(--code);
+  border: 1px solid var(--rule);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: 14px;
+  line-height: 1.6;
+  /* Belt and braces: a flex item's automatic minimum size is its content, so
+     without this the box itself could still be stretched wide. */
+  min-width: 0;
+  max-width: 100%;
+}
+.wire-body pre code {
+  font-family: var(--font-mono), monospace;
+  font-size: inherit;
+  color: var(--ink);
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+.wire-body code {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.84em;
+  background: var(--code);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+/* Long unbroken tokens — bare URLs, package paths — wrap instead of spilling. */
+.wire-body { overflow-wrap: break-word; }
+
 .wire-source { margin: 8px 0 0; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 
 .wire-end {
@@ -883,4 +920,6 @@ img { max-width: 100%; display: block; }
   .wire-lead-grid { grid-template-columns: 1fr; gap: 28px; }
   .wire-row { grid-template-columns: 44px 1fr; gap: 20px; }
   .wire-row .thumb-cell { grid-column: 2; }
+  /* Fit a few more columns of code on a phone before scrolling starts. */
+  .wire-body pre { font-size: 12.5px; padding: 14px; }
 }
