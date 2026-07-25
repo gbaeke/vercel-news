@@ -51,6 +51,65 @@ describe('thumbnailHandler', () => {
     expect(to).toBe('in_review');
   });
 
+  it('deletes the thumbnail it replaced, but only after the new one is stored', async () => {
+    const old = 'https://x.public.blob.vercel-storage.com/thumbnails/9-1784897751935.png';
+    const rows = await query<any>(
+      `INSERT INTO articles (source_feed, trigger_url, title, summary, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/regen', 'T', 'S', $1, 'image_requested') RETURNING *`,
+      [old]
+    );
+    const del = vi.fn(async () => {});
+    await thumbnailHandler(rows[0], {
+      generateImage: async () => Buffer.from('new-image-bytes'),
+      uploadBlob: async () => 'https://x.public.blob.vercel-storage.com/thumbnails/9-1784999999999.png',
+      del,
+    });
+
+    const [row] = await query<{ thumbnail_url: string }>(`SELECT thumbnail_url FROM articles WHERE id=$1`, [rows[0].id]);
+    // New image is live in the row, and only then is the old one dropped.
+    expect(row.thumbnail_url).toBe('https://x.public.blob.vercel-storage.com/thumbnails/9-1784999999999.png');
+    expect(del).toHaveBeenCalledWith(old);
+  });
+
+  it('keeps the old thumbnail when the upload failed and the placeholder took over', async () => {
+    const old = 'https://x.public.blob.vercel-storage.com/thumbnails/10-1784897751935.png';
+    const rows = await query<any>(
+      `INSERT INTO articles (source_feed, trigger_url, title, summary, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/regen-fail', 'T', 'S', $1, 'image_requested') RETURNING *`,
+      [old]
+    );
+    const del = vi.fn(async () => {});
+    await thumbnailHandler(rows[0], {
+      generateImage: async () => { throw new Error('image API down'); },
+      uploadBlob: vi.fn(),
+      del,
+    });
+    // Falling back to a placeholder is already a downgrade; do not also destroy
+    // the image the reviewer had.
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it('keeps the old thumbnail when another article still points at it', async () => {
+    const shared = 'https://x.public.blob.vercel-storage.com/thumbnails/11-1784897751935.png';
+    const rows = await query<any>(
+      `INSERT INTO articles (source_feed, trigger_url, title, summary, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/regen-shared', 'T', 'S', $1, 'image_requested') RETURNING *`,
+      [shared]
+    );
+    await query(
+      `INSERT INTO articles (source_feed, trigger_url, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/other-live', $1, 'published')`,
+      [shared]
+    );
+    const del = vi.fn(async () => {});
+    await thumbnailHandler(rows[0], {
+      generateImage: async () => Buffer.from('bytes'),
+      uploadBlob: async () => 'https://x.public.blob.vercel-storage.com/thumbnails/11-1785000000000.png',
+      del,
+    });
+    expect(del).not.toHaveBeenCalled();
+  });
+
   it('notifies the reviewer when a written article reaches in_review', async () => {
     const article = await insertArticle('written');
     const notify = vi.fn(async () => true);

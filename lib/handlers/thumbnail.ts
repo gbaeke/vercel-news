@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { query } from '../db';
+import { deleteThumbnailIfOrphaned, type BlobDeleter } from '../blobCleanup';
 import { loadPrompt } from '../prompts';
 import { placeholderSvgDataUrl } from '../placeholder';
 import { generateImageBytes } from '../llm';
@@ -10,6 +11,7 @@ export interface ThumbnailDeps {
   generateImage?: (prompt: string) => Promise<Buffer>;
   uploadBlob?: (name: string, data: Buffer | string, contentType: string) => Promise<string>;
   notify?: (article: Article, thumbnailUrl: string | null) => Promise<boolean>;
+  del?: BlobDeleter;
 }
 
 async function defaultUploadBlob(name: string, data: Buffer | string, contentType: string): Promise<string> {
@@ -23,10 +25,12 @@ export async function thumbnailHandler(article: Article, deps: ThumbnailDeps = {
   const notify = deps.notify ?? sendReviewReadyEmail;
 
   let thumbnailUrl: string;
+  let generated = false;
   try {
     const prompt = loadPrompt('thumbnail', { title: article.title ?? '', summary: article.summary ?? '' });
     const imageBuffer = await generateImage(prompt);
     thumbnailUrl = await uploadBlob(`thumbnails/${article.id}-${Date.now()}.png`, imageBuffer, 'image/png');
+    generated = true;
   } catch (err) {
     console.log(`[thumbnail] article ${article.id}: generation failed (${(err as Error).message}), using placeholder`);
     thumbnailUrl = placeholderSvgDataUrl(article.title ?? String(article.id));
@@ -36,6 +40,14 @@ export async function thumbnailHandler(article: Article, deps: ThumbnailDeps = {
     `UPDATE articles SET thumbnail_url = $1, status = 'in_review', claimed_at = NULL, updated_at = now() WHERE id = $2`,
     [thumbnailUrl, article.id]
   );
+
+  // Sweep the image we just replaced. Strictly after the UPDATE, so the new
+  // one is committed before the old one can be considered an orphan — and only
+  // when we actually generated a replacement, since a placeholder fallback is
+  // no reason to destroy the picture the reviewer already had.
+  if (generated && article.thumbnail_url && article.thumbnail_url !== thumbnailUrl) {
+    await deleteThumbnailIfOrphaned(article.thumbnail_url, { del: deps.del });
+  }
 
   // Only a fresh article (written -> in_review) warrants an email; image
   // regeneration means the reviewer is already looking at it.

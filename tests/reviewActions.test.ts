@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { query } from '../lib/db';
 import {
   approveArticleById,
@@ -109,6 +109,45 @@ describe('review actions', () => {
     await deleteArticleById(id);
     const rows = await query<{ url: string }>(`SELECT url FROM deleted_urls`);
     expect(rows.map((r) => r.url)).toEqual(['https://example.com/rv']);
+  });
+
+  it('delete also removes the article thumbnail from blob storage', async () => {
+    const thumb = 'https://x.public.blob.vercel-storage.com/thumbnails/42-1784897751935.png';
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/with-thumb', $1, 'published') RETURNING id`,
+      [thumb]
+    );
+    const del = vi.fn(async () => {});
+    await deleteArticleById(rows[0].id, { del });
+    expect(del).toHaveBeenCalledWith(thumb);
+  });
+
+  it('delete leaves the thumbnail alone when another article still uses it', async () => {
+    const shared = 'https://x.public.blob.vercel-storage.com/thumbnails/43-1784897751935.png';
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/doomed', $1, 'declined') RETURNING id`,
+      [shared]
+    );
+    await query(
+      `INSERT INTO articles (source_feed, trigger_url, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/still-live', $1, 'published')`,
+      [shared]
+    );
+    const del = vi.fn(async () => {});
+    await deleteArticleById(rows[0].id, { del });
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it('delete does not try to remove a placeholder thumbnail', async () => {
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, thumbnail_url, status)
+       VALUES ('openai', 'https://example.com/placeholder', 'data:image/svg+xml;base64,abc', 'declined') RETURNING id`
+    );
+    const del = vi.fn(async () => {});
+    await deleteArticleById(rows[0].id, { del });
+    expect(del).not.toHaveBeenCalled();
   });
 
   it('delete is idempotent for an id that is already gone', async () => {

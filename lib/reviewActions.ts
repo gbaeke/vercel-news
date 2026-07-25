@@ -1,4 +1,5 @@
 import { query } from './db';
+import { deleteThumbnailIfOrphaned, type BlobCleanupDeps } from './blobCleanup';
 import { publishHandler } from './handlers/publish';
 import type { Article } from './types';
 
@@ -52,15 +53,19 @@ export async function unpublishArticleById(id: number): Promise<void> {
 }
 
 // Permanent: the row goes, and the trigger URL is tombstoned in one statement
-// so ingest can never bring the story back on a later tick.
-export async function deleteArticleById(id: number): Promise<void> {
-  await query(
+// so ingest can never bring the story back on a later tick. The thumbnail is
+// swept afterwards — only once the row is gone can it be judged an orphan.
+export async function deleteArticleById(id: number, deps: BlobCleanupDeps = {}): Promise<void> {
+  const rows = await query<{ thumbnail_url: string | null }>(
     `WITH gone AS (
-       DELETE FROM articles WHERE id = $1 RETURNING trigger_url
+       DELETE FROM articles WHERE id = $1 RETURNING trigger_url, thumbnail_url
+     ), tombstone AS (
+       INSERT INTO deleted_urls (url)
+       SELECT trigger_url FROM gone
+       ON CONFLICT (url) DO NOTHING
      )
-     INSERT INTO deleted_urls (url)
-     SELECT trigger_url FROM gone
-     ON CONFLICT (url) DO NOTHING`,
+     SELECT thumbnail_url FROM gone`,
     [id]
   );
+  await deleteThumbnailIfOrphaned(rows[0]?.thumbnail_url, deps);
 }
