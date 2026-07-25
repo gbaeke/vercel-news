@@ -60,7 +60,13 @@ export function WireFooter({ article = false }: { article?: boolean }) {
   return (
     <footer className={`wire-footer${article ? ' wire-footer--article' : ''}`}>
       <Wordmark size="sm" />
-      <span className="mono wire-endline">End of transmission · human-reviewed · {today}</span>
+      <span className="wire-footer-side">
+        <span className="mono wire-endline">End of transmission · human-reviewed · {today}</span>
+        {/* Staff entrance — the desk itself stays behind the password. */}
+        <Link href="/review" className="mono wire-desk-link">
+          Desk ↗
+        </Link>
+      </span>
     </footer>
   );
 }
