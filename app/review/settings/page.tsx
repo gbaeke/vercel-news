@@ -18,9 +18,14 @@ export default async function SettingsPage({
         <Link href="/review" className="desk-mark">
           The AI Wire — <em>Desk</em>
         </Link>
-        <Link href="/review" className="btn">
-          Back to desk
-        </Link>
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <Link href="/" className="btn">
+            View the wire ↗
+          </Link>
+          <Link href="/review" className="btn">
+            Back to desk
+          </Link>
+        </div>
       </header>
 
       {searchParams.error && <p className="error-note">{searchParams.error}</p>}

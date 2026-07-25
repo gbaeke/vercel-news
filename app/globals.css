@@ -572,6 +572,8 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+.login-back { display: inline-block; margin-top: 1.25rem; color: var(--ink-soft); }
+.login-back:hover { color: var(--riso); }
 .login-card input {
   border: 1.5px solid var(--line);
   background: var(--paper-2);

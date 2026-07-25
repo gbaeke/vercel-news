@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { login } from './actions';
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
@@ -22,6 +23,10 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             </p>
           )}
         </form>
+        {/* The public footer links here, so readers who wander in need a way out. */}
+        <Link href="/" className="meta login-back">
+          ← Back to the wire
+        </Link>
       </main>
     </div>
   );

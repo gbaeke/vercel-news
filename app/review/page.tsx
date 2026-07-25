@@ -31,6 +31,9 @@ export default async function ReviewListPage({
           The AI Wire — <em>Desk</em>
         </Link>
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <Link href="/" className="btn">
+            View the wire ↗
+          </Link>
           <Link href="/review/settings" className="btn">
             Settings
           </Link>

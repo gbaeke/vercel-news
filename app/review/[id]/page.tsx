@@ -85,7 +85,12 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
         <Link href="/review" className="desk-mark">
           ← The AI Wire — <em>Desk</em>
         </Link>
-        <StatusChip status={article.status} />
+        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+          <Link href="/" className="btn">
+            View the wire ↗
+          </Link>
+          <StatusChip status={article.status} />
+        </div>
       </header>
 
       <Tracker article={article} />
