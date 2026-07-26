@@ -3,6 +3,7 @@ import { query } from '../../../lib/db';
 import { formatDateTime } from '../../../lib/format';
 import { StatusChip } from '../../ui';
 import type { Article } from '../../../lib/types';
+import { parseArticleId } from '../../../lib/reviewInput';
 import {
   approveArticle,
   requestRewrite,
@@ -14,6 +15,7 @@ import {
 } from './actions';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 const STAGES = [
   { key: 'new', label: 'ingested' },
@@ -55,20 +57,33 @@ function Tracker({ article }: { article: Article }) {
   );
 }
 
-export default async function ReviewDetailPage({ params }: { params: { id: string } }) {
-  const [article] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [params.id]);
+function NotFoundState() {
+  return (
+    <div className="shell">
+      <div className="empty-state">
+        <span className="meta">not found</span>
+        <p>
+          That article reference is invalid or no longer exists. <Link href="/review">Back to the desk</Link>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default async function ReviewDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { notice?: string; error?: string };
+}) {
+  const id = parseArticleId(params.id);
+  if (id === null) return <NotFoundState />;
+
+  const [article] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [id]);
 
   if (!article) {
-    return (
-      <div className="shell">
-        <div className="empty-state">
-          <span className="meta">not found</span>
-          <p>
-            No article with that id. <Link href="/review">Back to the desk</Link>.
-          </p>
-        </div>
-      </div>
-    );
+    return <NotFoundState />;
   }
 
   const approve = approveArticle.bind(null, article.id);
@@ -94,6 +109,9 @@ export default async function ReviewDetailPage({ params }: { params: { id: strin
       </header>
 
       <Tracker article={article} />
+
+      {searchParams.error && <p className="error-note">{searchParams.error}</p>}
+      {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
 
       {article.error && (
         <p className="error-note">

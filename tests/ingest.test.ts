@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { query } from '../lib/db';
 import { ingestFeeds } from '../lib/ingest';
 import { getFeeds } from '../lib/feeds';
@@ -101,5 +101,24 @@ describe('ingestFeeds', () => {
     expect(broken?.inserted).toBe(0);
     expect(broken?.error).toBeTruthy();
     expect(results.filter((r) => !r.error).every((r) => r.inserted === 1)).toBe(true);
+  });
+
+  it('puts a timeout signal on real feed requests', async () => {
+    const signals: AbortSignal[] = [];
+    const xml = rss([]);
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      signals.push(init?.signal as AbortSignal);
+      return new Response(xml, { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    try {
+      await ingestFeeds();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(signals).toHaveLength(2);
+    expect(signals.every((signal) => signal instanceof AbortSignal)).toBe(true);
   });
 });

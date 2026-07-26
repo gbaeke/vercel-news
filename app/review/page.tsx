@@ -6,6 +6,7 @@ import { StatusChip } from '../ui';
 import type { Article } from '../../lib/types';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 const GROUPS = [
   { title: 'Waiting for you', statuses: ['in_review'] },

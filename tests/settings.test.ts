@@ -10,8 +10,8 @@ describe('tags CRUD', () => {
   });
 
   it('adds a tag and is idempotent on duplicates', async () => {
-    await addTag('agents');
-    await addTag('agents');
+    expect(await addTag('agents')).toBe(true);
+    expect(await addTag('agents')).toBe(false);
     const tags = await getTags();
     expect(tags.filter((t) => t === 'agents')).toEqual(['agents']);
   });
@@ -29,6 +29,10 @@ describe('tags CRUD', () => {
     expect(await getTags()).toEqual(['models']);
   });
 
+  it('reports a tag that is already gone', async () => {
+    expect(await deleteTag('missing')).toEqual({ deleted: false, reason: 'not_found' });
+  });
+
   it('normalizes valid names and rejects invalid ones', () => {
     expect(normalizeTagName('  Agents ')).toBe('agents');
     expect(normalizeTagName('foo bar')).toBeNull();
@@ -44,17 +48,32 @@ describe('feeds CRUD', () => {
   });
 
   it('adds a feed and updates the url on name conflict', async () => {
-    await addFeed('hn', 'https://example.com/hn.xml');
-    await addFeed('hn', 'https://example.com/hn-v2.xml');
+    expect(await addFeed('hn', 'https://example.com/hn.xml')).toEqual({ ok: true, changed: true });
+    expect(await addFeed('hn', 'https://example.com/hn-v2.xml')).toEqual({ ok: true, changed: true });
     const feeds = await getFeeds();
     expect(feeds.find((f) => f.name === 'hn')?.url).toBe('https://example.com/hn-v2.xml');
   });
 
+  it('clears the ingest cursor when an existing feed URL changes', async () => {
+    await query(`INSERT INTO feed_state (feed_name, last_url) VALUES ('openai', 'https://old/item')`);
+    await addFeed('openai', 'https://example.com/openai-v2.xml');
+    expect(await query(`SELECT * FROM feed_state WHERE feed_name = 'openai'`)).toEqual([]);
+  });
+
+  it('returns a friendly conflict when another feed already owns the URL', async () => {
+    const result = await addFeed('duplicate', 'https://openai.com/news/rss.xml');
+    expect(result).toEqual({ ok: false, reason: 'url_conflict', existingName: 'openai' });
+  });
+
   it('deletes a feed together with its ingest cursor', async () => {
     await query(`INSERT INTO feed_state (feed_name, last_url) VALUES ('openai', 'https://x')`);
-    await deleteFeed('openai');
+    expect(await deleteFeed('openai')).toBe(true);
     expect((await getFeeds()).map((f) => f.name)).toEqual(['anthropic']);
     expect(await query(`SELECT * FROM feed_state WHERE feed_name = 'openai'`)).toEqual([]);
+  });
+
+  it('reports a feed that is already gone', async () => {
+    expect(await deleteFeed('missing')).toBe(false);
   });
 
   it('normalizes valid names and rejects invalid ones', () => {

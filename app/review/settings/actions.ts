@@ -6,12 +6,19 @@ import { addTag, deleteTag, normalizeTagName } from '../../../lib/tags';
 import { addFeed, deleteFeed, getFeeds, normalizeFeedName } from '../../../lib/feeds';
 import { validateFeed } from '../../../lib/feedValidator';
 
+const MAX_FEEDBACK_MESSAGE_LENGTH = 1_500;
+
 function done(params: { notice?: string; error?: string } = {}): never {
   const qs = new URLSearchParams();
-  if (params.notice) qs.set('notice', params.notice);
-  if (params.error) qs.set('error', params.error);
+  if (params.notice) qs.set('notice', params.notice.slice(0, MAX_FEEDBACK_MESSAGE_LENGTH));
+  if (params.error) qs.set('error', params.error.slice(0, MAX_FEEDBACK_MESSAGE_LENGTH));
   revalidatePath('/review/settings');
   redirect(qs.size > 0 ? `/review/settings?${qs}` : '/review/settings');
+}
+
+function unexpected(action: string, error: unknown): never {
+  console.error(`[desk settings] ${action} failed`, error);
+  done({ error: `Could not ${action} right now. Please try again.` });
 }
 
 export async function createTag(formData: FormData) {
@@ -19,18 +26,34 @@ export async function createTag(formData: FormData) {
   if (!name) {
     done({ error: 'tag names must be 1-30 chars: lowercase letters, digits, dashes' });
   }
-  await addTag(name);
+  let added: boolean;
+  try {
+    added = await addTag(name);
+  } catch (error) {
+    unexpected('add that tag', error);
+  }
+
   revalidatePath('/');
-  done({ notice: `tag "${name}" added` });
+  done({ notice: added ? `Tag “${name}” added.` : `Tag “${name}” already exists.` });
 }
 
 export async function removeTag(name: string) {
-  const result = await deleteTag(name);
+  let result: Awaited<ReturnType<typeof deleteTag>>;
+  try {
+    result = await deleteTag(name);
+  } catch (error) {
+    unexpected('delete that tag', error);
+  }
+
   if (!result.deleted) {
-    done({ error: result.reason });
+    done({
+      error: result.reason === 'last_tag'
+        ? 'Cannot delete the last tag — the tagging step needs at least one.'
+        : `Tag “${name}” no longer exists.`,
+    });
   }
   revalidatePath('/');
-  done({ notice: `tag "${name}" deleted` });
+  done({ notice: `Tag “${name}” deleted.` });
 }
 
 export async function createFeed(formData: FormData) {
@@ -40,29 +63,68 @@ export async function createFeed(formData: FormData) {
     done({ error: 'feed names must be 1-30 chars: lowercase letters, digits, dashes' });
   }
 
-  const check = await validateFeed(url);
+  let check: Awaited<ReturnType<typeof validateFeed>>;
+  try {
+    check = await validateFeed(url);
+  } catch (error) {
+    unexpected('validate that feed', error);
+  }
+
   if (!check.ok) {
     done({ error: `feed not added — ${check.error}` });
   }
 
-  await addFeed(name, url);
+  let result: Awaited<ReturnType<typeof addFeed>>;
+  try {
+    result = await addFeed(name, url);
+  } catch (error) {
+    unexpected('save that feed', error);
+  }
+
+  if (!result.ok) {
+    const owner = result.existingName ? ` by “${result.existingName}”` : '';
+    done({ error: `That feed URL is already used${owner}.` });
+  }
+
   done({
-    notice: `feed "${name}" added — "${check.title}", ${check.itemCount} item(s)${check.warning ? ` (${check.warning})` : ''}`,
+    notice: result.changed
+      ? `Feed “${name}” saved — “${check.title}”, ${check.itemCount} item(s)${check.warning ? ` (${check.warning})` : ''}.`
+      : `Feed “${name}” is already configured with that URL.`,
   });
 }
 
 export async function removeFeed(name: string) {
-  await deleteFeed(name);
-  done({ notice: `feed "${name}" deleted` });
+  let deleted: boolean;
+  try {
+    deleted = await deleteFeed(name);
+  } catch (error) {
+    unexpected('delete that feed', error);
+  }
+
+  done(deleted
+    ? { notice: `Feed “${name}” deleted.` }
+    : { error: `Feed “${name}” no longer exists.` });
 }
 
 export async function testFeed(name: string) {
-  const feed = (await getFeeds()).find((f) => f.name === name);
+  let feed: Awaited<ReturnType<typeof getFeeds>>[number] | undefined;
+  try {
+    feed = (await getFeeds()).find((item) => item.name === name);
+  } catch (error) {
+    unexpected('load that feed', error);
+  }
+
   if (!feed) {
     done({ error: `feed "${name}" not found` });
   }
 
-  const check = await validateFeed(feed.url);
+  let check: Awaited<ReturnType<typeof validateFeed>>;
+  try {
+    check = await validateFeed(feed.url);
+  } catch (error) {
+    unexpected('test that feed', error);
+  }
+
   if (!check.ok) {
     done({ error: `feed "${name}" failed: ${check.error}` });
   }

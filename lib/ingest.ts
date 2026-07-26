@@ -8,7 +8,10 @@ export interface IngestDeps {
 }
 
 async function defaultFetchFeedXml(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)' } });
+  const res = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)' },
+    signal: AbortSignal.timeout(10_000),
+  });
   if (!res.ok) throw new Error(`feed fetch returned ${res.status}`);
   return res.text();
 }

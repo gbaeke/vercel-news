@@ -34,12 +34,32 @@ describe('review actions', () => {
        VALUES ('openai', 'https://example.com/instant', 'Instant Title', 'Sum', 'instant-title', 'in_review')
        RETURNING id`
     );
-    await approveAndPublishById(rows[0].id);
+    const result = await approveAndPublishById(rows[0].id);
     const [row] = await query<{ status: string; published_at: string | null }>(
       `SELECT status, published_at FROM articles WHERE id=$1`, [rows[0].id]
     );
     expect(row.status).toBe('published');
     expect(row.published_at).not.toBeNull();
+    expect(result).toEqual({ ok: true, outcome: 'published' });
+  });
+
+  it('reports a publish failure while leaving the approved article queued for retry', async () => {
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, title, summary, status)
+       VALUES ('openai', 'https://example.com/queued', 'Queued Title', 'Sum', 'in_review')
+       RETURNING id`
+    );
+    const result = await approveAndPublishById(rows[0].id, {
+      publish: async () => {
+        throw new Error('gateway unavailable');
+      },
+    });
+    const [row] = await query<{ status: string }>(
+      `SELECT status FROM articles WHERE id = $1`,
+      [rows[0].id]
+    );
+    expect(result).toEqual({ ok: true, outcome: 'queued' });
+    expect(row.status).toBe('approved');
   });
 
   it('requestRewrite stores feedback and sets status=rewrite_requested', async () => {
@@ -74,6 +94,26 @@ describe('review actions', () => {
     );
     expect(row.status).toBe('tagged');
     expect(row.error).toBeNull();
+  });
+
+  it('refuses stale transitions without changing the current status', async () => {
+    const id = await insertArticle('published', { published_at: new Date().toISOString() });
+    const result = await approveArticleById(id);
+    const [row] = await query<{ status: string }>(`SELECT status FROM articles WHERE id=$1`, [id]);
+    expect(result).toEqual({ ok: false, reason: 'invalid_state', status: 'published' });
+    expect(row.status).toBe('published');
+  });
+
+  it('refuses retry when failed_from is missing instead of assigning a null status', async () => {
+    const id = await insertArticle('failed');
+    const result = await retryArticleById(id);
+    const [row] = await query<{ status: string }>(`SELECT status FROM articles WHERE id=$1`, [id]);
+    expect(result).toEqual({ ok: false, reason: 'invalid_state', status: 'failed' });
+    expect(row.status).toBe('failed');
+  });
+
+  it('reports a missing article', async () => {
+    await expect(requestNewImageById(999_999)).resolves.toEqual({ ok: false, reason: 'not_found' });
   });
 
   it('unpublish returns the article to review and clears published_at', async () => {
@@ -152,8 +192,8 @@ describe('review actions', () => {
 
   it('delete is idempotent for an id that is already gone', async () => {
     const id = await insertArticle('declined');
-    await deleteArticleById(id);
-    await expect(deleteArticleById(id)).resolves.toBeUndefined();
+    await expect(deleteArticleById(id)).resolves.toEqual({ ok: true });
+    await expect(deleteArticleById(id)).resolves.toEqual({ ok: false, reason: 'not_found' });
     const rows = await query(`SELECT url FROM deleted_urls`);
     expect(rows.length).toBe(1);
   });
