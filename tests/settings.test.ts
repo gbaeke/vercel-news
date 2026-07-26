@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getTags, addTag, deleteTag, normalizeTagName } from '../lib/tags';
+import {
+  getTagConfigs,
+  getTags,
+  addTag,
+  deleteTag,
+  normalizeTagName,
+  updateTagPersona,
+} from '../lib/tags';
 import { getFeeds, addFeed, deleteFeed, normalizeFeedName } from '../lib/feeds';
 import { query } from '../lib/db';
 
@@ -10,10 +17,26 @@ describe('tags CRUD', () => {
   });
 
   it('adds a tag and is idempotent on duplicates', async () => {
-    expect(await addTag('agents')).toBe(true);
-    expect(await addTag('agents')).toBe(false);
+    expect(await addTag('agents', 'research-explainer')).toBe(true);
+    expect(await addTag('agents', 'research-explainer')).toBe(false);
     const tags = await getTags();
     expect(tags.filter((t) => t === 'agents')).toEqual(['agents']);
+    expect((await getTagConfigs()).find((tag) => tag.name === 'agents')).toEqual({
+      name: 'agents',
+      personaId: 'research-explainer',
+    });
+  });
+
+  it('updates the persona assigned to an existing tag', async () => {
+    expect(await updateTagPersona('models', 'policy-watcher')).toBe(true);
+    expect((await getTagConfigs()).find((tag) => tag.name === 'models')?.personaId)
+      .toBe('policy-watcher');
+    expect(await updateTagPersona('missing', 'policy-watcher')).toBe(false);
+  });
+
+  it('rejects persona IDs that are not in the YAML catalogue', async () => {
+    await expect(addTag('agents', 'missing-persona')).rejects.toThrow('unknown persona');
+    await expect(updateTagPersona('models', 'missing-persona')).rejects.toThrow('unknown persona');
   });
 
   it('deletes a tag', async () => {

@@ -1,14 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { pickPersona } from '../lib/personas';
+import {
+  DEFAULT_PERSONA_ID,
+  findPersona,
+  getPersonas,
+  resolvePersona,
+} from '../lib/personas';
 
-describe('pickPersona', () => {
-  it('picks a persona whose tags include the primary tag', () => {
-    const persona = pickPersona('policy');
-    expect(persona.tags).toContain('policy');
+describe('personas', () => {
+  it('loads the fixed persona catalogue without tag assignments', () => {
+    expect(getPersonas().map((persona) => persona.name)).toEqual([
+      'pragmatic-engineer',
+      'policy-watcher',
+      'research-explainer',
+    ]);
+    expect(getPersonas().every((persona) => !('tags' in persona))).toBe(true);
   });
 
-  it('falls back to the first persona for an unmatched tag', () => {
-    const persona = pickPersona('nonexistent-tag');
-    expect(persona.name).toBeTruthy();
+  it('resolves known IDs and gracefully falls back for a stale assignment', () => {
+    expect(findPersona('policy-watcher')?.name).toBe('policy-watcher');
+    expect(resolvePersona('missing-persona').name).toBe(DEFAULT_PERSONA_ID);
   });
 });

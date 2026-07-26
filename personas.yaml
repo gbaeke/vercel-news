@@ -1,16 +1,16 @@
+# Persona definitions live here; tag-to-persona assignments live in
+# tags.persona_id so the Desk can change them without a deployment.
 personas:
   - name: pragmatic-engineer
     style: >
-      Pragmatic engineer, dry wit, focuses on day-to-day workflow impact —
-      what this actually changes for someone shipping code tomorrow.
-    tags: [tooling, product, models]
+      Pragmatic engineer with dry wit. Highlights concrete technical and
+      workflow consequences when the source supports them, but does not force
+      stories into a deployment, productivity, or immediate-action angle.
   - name: policy-watcher
     style: >
       Measured policy analyst voice, connects the news to regulation and
       industry incentives without editorializing.
-    tags: [policy, industry]
   - name: research-explainer
     style: >
       Patient explainer voice, unpacks technical claims for a practitioner
       audience without dumbing them down.
-    tags: [research]

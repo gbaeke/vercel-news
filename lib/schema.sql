@@ -40,12 +40,35 @@ CREATE TABLE IF NOT EXISTS feed_state (
 
 CREATE TABLE IF NOT EXISTS tags (
   name        TEXT PRIMARY KEY,
+  -- Logical reference to a version-controlled definition in personas.yaml.
+  persona_id  TEXT NOT NULL DEFAULT 'pragmatic-engineer',
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Existing installations predate configurable persona assignments. Add and
+-- backfill the reference without overwriting assignments on later migrations.
+ALTER TABLE tags ADD COLUMN IF NOT EXISTS persona_id TEXT;
+UPDATE tags
+SET persona_id = CASE
+  WHEN name IN ('policy', 'industry') THEN 'policy-watcher'
+  WHEN name = 'research' THEN 'research-explainer'
+  ELSE 'pragmatic-engineer'
+END
+WHERE persona_id IS NULL;
+ALTER TABLE tags ALTER COLUMN persona_id SET DEFAULT 'pragmatic-engineer';
+ALTER TABLE tags ALTER COLUMN persona_id SET NOT NULL;
+
 -- Seed only when the table is empty so operator deletions survive re-migration.
-INSERT INTO tags (name)
-SELECT unnest(ARRAY['models', 'tooling', 'research', 'product', 'policy', 'industry'])
+INSERT INTO tags (name, persona_id)
+SELECT v.name, v.persona_id
+FROM (VALUES
+  ('models', 'pragmatic-engineer'),
+  ('tooling', 'pragmatic-engineer'),
+  ('research', 'research-explainer'),
+  ('product', 'pragmatic-engineer'),
+  ('policy', 'policy-watcher'),
+  ('industry', 'policy-watcher')
+) AS v(name, persona_id)
 WHERE NOT EXISTS (SELECT 1 FROM tags);
 
 CREATE TABLE IF NOT EXISTS feeds (

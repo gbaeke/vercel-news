@@ -8,6 +8,7 @@ vi.mock('../../lib/llm', () => ({
 
 import { complete, structured } from '../../lib/llm';
 import { writeHandler } from '../../lib/handlers/write';
+import { updateTagPersona } from '../../lib/tags';
 
 async function insertArticle() {
   const rows = await query<{ id: number }>(
@@ -29,6 +30,7 @@ describe('writeHandler', () => {
       summary: 'A short teaser.',
     });
 
+    await updateTagPersona('models', 'research-explainer');
     const article = await insertArticle();
     const to = await writeHandler(article as any);
     expect(to).toBe('written');
@@ -40,6 +42,7 @@ describe('writeHandler', () => {
     expect(row.content_html).toContain('humanized body');
     expect(row.summary).toBe('A short teaser.');
     expect(row.slug).toBe('a-new-model-arrives');
-    expect(row.persona).toBeTruthy();
+    expect(row.persona).toBe('research-explainer');
+    expect((complete as any).mock.calls[0][0]).toContain('Patient explainer voice');
   });
 });

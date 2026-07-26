@@ -1,7 +1,8 @@
 import { query } from '../db';
 import { complete, structured } from '../llm';
 import { loadPrompt } from '../prompts';
-import { pickPersona } from '../personas';
+import { resolvePersona } from '../personas';
+import { getTagPersonaId } from '../tags';
 import { generateSlug } from '../slug';
 import { renderMarkdown } from '../markdown';
 import type { Article } from '../types';
@@ -30,7 +31,13 @@ async function slugExists(slug: string): Promise<boolean> {
 
 export async function writeHandler(article: Article): Promise<string> {
   const primaryTag = article.tags?.primary ?? 'industry';
-  const persona = pickPersona(primaryTag);
+  const personaId = await getTagPersonaId(primaryTag);
+  const persona = resolvePersona(personaId);
+  if (!personaId || persona.name !== personaId) {
+    console.warn(
+      `[write] tag "${primaryTag}" has no valid persona assignment; using "${persona.name}"`
+    );
+  }
 
   const draft = await complete(
     loadPrompt('draft-system', { persona_style: persona.style }),

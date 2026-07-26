@@ -538,6 +538,12 @@ img { max-width: 100%; display: block; }
   font-size: 0.9rem;
 }
 .settings-row .tag-chip { flex: 1; text-align: left; }
+.settings-tag-persona {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.settings-persona-select { min-width: 12rem; }
 .settings-form {
   display: flex;
   gap: 0.6rem;
@@ -673,10 +679,30 @@ img { max-width: 100%; display: block; }
     display: grid;
     grid-template-columns: minmax(0, 1fr) 5.5rem;
   }
-  .settings-row--tag form,
-  .settings-row--tag .btn {
+  .settings-row--tag > .tag-chip {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .settings-row--tag > form:last-child,
+  .settings-row--tag > form:last-child .btn {
     width: 100%;
   }
+  .settings-row--tag > form:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .settings-tag-persona {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5.5rem;
+    width: 100%;
+  }
+  .settings-tag-persona .settings-persona-select {
+    width: 100%;
+    min-width: 0;
+  }
+  .settings-tag-persona .btn { width: 100%; }
   .settings-row--feed {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 4.75rem 5.5rem;

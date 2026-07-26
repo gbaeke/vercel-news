@@ -2,9 +2,15 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { addTag, deleteTag, normalizeTagName } from '../../../lib/tags';
+import {
+  addTag,
+  deleteTag,
+  normalizeTagName,
+  updateTagPersona,
+} from '../../../lib/tags';
 import { addFeed, deleteFeed, getFeeds, normalizeFeedName } from '../../../lib/feeds';
 import { validateFeed } from '../../../lib/feedValidator';
+import { findPersona } from '../../../lib/personas';
 
 const MAX_FEEDBACK_MESSAGE_LENGTH = 1_500;
 
@@ -23,18 +29,44 @@ function unexpected(action: string, error: unknown): never {
 
 export async function createTag(formData: FormData) {
   const name = normalizeTagName(String(formData.get('name') ?? ''));
+  const personaId = String(formData.get('persona') ?? '');
   if (!name) {
     done({ error: 'tag names must be 1-30 chars: lowercase letters, digits, dashes' });
   }
+  if (!findPersona(personaId)) {
+    done({ error: 'Choose a valid persona for that tag.' });
+  }
   let added: boolean;
   try {
-    added = await addTag(name);
+    added = await addTag(name, personaId);
   } catch (error) {
     unexpected('add that tag', error);
   }
 
   revalidatePath('/');
-  done({ notice: added ? `Tag “${name}” added.` : `Tag “${name}” already exists.` });
+  done({
+    notice: added
+      ? `Tag “${name}” added with persona “${personaId}”.`
+      : `Tag “${name}” already exists.`,
+  });
+}
+
+export async function assignTagPersona(name: string, formData: FormData) {
+  const personaId = String(formData.get('persona') ?? '');
+  if (!findPersona(personaId)) {
+    done({ error: 'Choose a valid persona for that tag.' });
+  }
+
+  let updated: boolean;
+  try {
+    updated = await updateTagPersona(name, personaId);
+  } catch (error) {
+    unexpected('assign that persona', error);
+  }
+
+  done(updated
+    ? { notice: `Tag “${name}” now uses “${personaId}”.` }
+    : { error: `Tag “${name}” no longer exists.` });
 }
 
 export async function removeTag(name: string) {

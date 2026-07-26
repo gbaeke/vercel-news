@@ -1,7 +1,15 @@
 import Link from 'next/link';
-import { getTags } from '../../../lib/tags';
+import { getTagConfigs } from '../../../lib/tags';
 import { getFeeds } from '../../../lib/feeds';
-import { createTag, removeTag, createFeed, removeFeed, testFeed } from './actions';
+import { getPersonas } from '../../../lib/personas';
+import {
+  assignTagPersona,
+  createTag,
+  removeTag,
+  createFeed,
+  removeFeed,
+  testFeed,
+} from './actions';
 import { SubmitButton } from '../submit-button';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +19,8 @@ export default async function SettingsPage({
 }: {
   searchParams: { notice?: string; error?: string };
 }) {
-  const [tags, feeds] = await Promise.all([getTags(), getFeeds()]);
+  const [tags, feeds] = await Promise.all([getTagConfigs(), getFeeds()]);
+  const personas = getPersonas();
 
   return (
     <div className="shell">
@@ -35,13 +44,35 @@ export default async function SettingsPage({
       <section>
         <h2 className="section-head">Tags ({tags.length})</h2>
         <p className="meta">
-          The tagging step only assigns tags from this list; the public wire filter shows them all.
+          The tagging step only assigns tags from this list. Each tag chooses the writing persona
+          used when it is the article&apos;s primary tag.
         </p>
         <ul className="settings-list">
           {tags.map((tag) => (
-            <li key={tag} className="settings-row settings-row--tag">
-              <span className="tag-chip">{tag}</span>
-              <form action={removeTag.bind(null, tag)}>
+            <li key={tag.name} className="settings-row settings-row--tag">
+              <span className="tag-chip">{tag.name}</span>
+              <form
+                action={assignTagPersona.bind(null, tag.name)}
+                className="settings-tag-persona"
+              >
+                <select
+                  name="persona"
+                  defaultValue={tag.personaId}
+                  className="settings-input settings-persona-select"
+                  aria-label={`Persona for ${tag.name}`}
+                >
+                  {!personas.some((persona) => persona.name === tag.personaId) && (
+                    <option value={tag.personaId}>Unknown: {tag.personaId}</option>
+                  )}
+                  {personas.map((persona) => (
+                    <option key={persona.name} value={persona.name}>
+                      {persona.name}
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton label="Save" pendingLabel="Saving…" />
+              </form>
+              <form action={removeTag.bind(null, tag.name)}>
                 <SubmitButton
                   label="Delete"
                   pendingLabel="Deleting…"
@@ -60,6 +91,22 @@ export default async function SettingsPage({
             maxLength={30}
             className="settings-input"
           />
+          <select
+            name="persona"
+            required
+            defaultValue=""
+            className="settings-input settings-persona-select"
+            aria-label="Persona for new tag"
+          >
+            <option value="" disabled>
+              Choose persona
+            </option>
+            {personas.map((persona) => (
+              <option key={persona.name} value={persona.name}>
+                {persona.name}
+              </option>
+            ))}
+          </select>
           <SubmitButton
             label="Add tag"
             pendingLabel="Adding tag…"

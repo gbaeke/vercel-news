@@ -13,8 +13,13 @@ beforeEach(async () => {
   // Reset tags/feeds to the seed defaults so every test starts from a known config.
   await pool.query('TRUNCATE tags, feeds');
   await pool.query(
-    `INSERT INTO tags (name)
-     SELECT unnest(ARRAY['models', 'tooling', 'research', 'product', 'policy', 'industry'])`
+    `INSERT INTO tags (name, persona_id) VALUES
+     ('models', 'pragmatic-engineer'),
+     ('tooling', 'pragmatic-engineer'),
+     ('research', 'research-explainer'),
+     ('product', 'pragmatic-engineer'),
+     ('policy', 'policy-watcher'),
+     ('industry', 'policy-watcher')`
   );
   await pool.query(
     `INSERT INTO feeds (name, url) VALUES
