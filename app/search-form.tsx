@@ -38,6 +38,16 @@ export function SearchForm({
           maxLength={MAX_SEARCH_LENGTH}
           className="wire-search-input"
         />
+        {query && (
+          <Link
+            href={clearHref}
+            className="wire-search-clear"
+            aria-label="Clear search"
+            title="Clear search"
+          >
+            ×
+          </Link>
+        )}
         <button
           type="submit"
           className="wire-search-submit"
@@ -48,11 +58,6 @@ export function SearchForm({
           {pending ? '…' : '→'}
         </button>
       </div>
-      {query && (
-        <Link href={clearHref} className="wire-search-clear">
-          Clear
-        </Link>
-      )}
     </form>
   );
 }

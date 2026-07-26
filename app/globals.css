@@ -857,7 +857,7 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   gap: 14px;
-  max-width: 720px;
+  width: min(100%, 620px);
 }
 .wire-search-label {
   flex: 0 0 auto;
@@ -869,13 +869,23 @@ img { max-width: 100%; display: block; }
 .wire-search-control {
   display: flex;
   flex: 1;
+  align-items: stretch;
   min-width: 0;
-  border-bottom: 1px solid var(--ink);
+  height: 42px;
+  overflow: hidden;
+  border: 1px solid var(--soft);
+  border-radius: 999px;
+  background: var(--paper);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.wire-search-control:focus-within {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px var(--riso-wash);
 }
 .wire-search-input {
   width: 100%;
   min-width: 0;
-  padding: 8px 2px;
+  padding: 0 14px;
   border: 0;
   border-radius: 0;
   outline: 0;
@@ -884,11 +894,14 @@ img { max-width: 100%; display: block; }
   font: inherit;
   font-size: 12px;
 }
+.wire-search-input:focus-visible { outline: 0; }
 .wire-search-input::placeholder { color: var(--mut); opacity: 1; }
-.wire-search-input::-webkit-search-cancel-button { cursor: pointer; }
+.wire-search-input::-webkit-search-cancel-button { display: none; }
 .wire-search-submit {
-  width: 38px;
+  flex: 0 0 44px;
+  width: 44px;
   border: 0;
+  border-left: 1px solid var(--rule);
   background: transparent;
   color: var(--acc);
   cursor: pointer;
@@ -896,14 +909,23 @@ img { max-width: 100%; display: block; }
   font-size: 18px;
 }
 .wire-search-submit:hover { color: var(--ink); }
+.wire-search-submit:focus-visible,
+.wire-search-clear:focus-visible {
+  outline: 0;
+  background: var(--riso-wash);
+  color: var(--acc);
+}
 .wire-search-submit:disabled { color: var(--mut); cursor: wait; }
 .wire-search-clear {
-  flex: 0 0 auto;
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--rule);
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  place-items: center;
+  color: var(--mut);
+  font-size: 17px;
+  line-height: 1;
 }
+.wire-search-clear:hover { color: var(--acc); }
 .wire-search-note {
   margin: 28px 0 0;
   padding: 12px 14px;
