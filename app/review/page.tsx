@@ -33,14 +33,14 @@ export default async function ReviewListPage({
         <Link href="/review" className="desk-mark">
           The AI Wire — <em>Desk</em>
         </Link>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <div className="desk-actions">
           <Link href="/" className="btn">
             View the wire ↗
           </Link>
           <Link href="/review/settings" className="btn">
             Settings
           </Link>
-          <form action={runTickNow}>
+          <form action={runTickNow} className="desk-actions__wide">
             <SubmitButton
               label="Check feeds & process"
               pendingLabel="Checking feeds & processing…"

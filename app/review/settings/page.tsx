@@ -19,7 +19,7 @@ export default async function SettingsPage({
         <Link href="/review" className="desk-mark">
           The AI Wire — <em>Desk</em>
         </Link>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <div className="desk-actions">
           <Link href="/" className="btn">
             View the wire ↗
           </Link>
@@ -39,7 +39,7 @@ export default async function SettingsPage({
         </p>
         <ul className="settings-list">
           {tags.map((tag) => (
-            <li key={tag} className="settings-row">
+            <li key={tag} className="settings-row settings-row--tag">
               <span className="tag-chip">{tag}</span>
               <form action={removeTag.bind(null, tag)}>
                 <SubmitButton
@@ -76,13 +76,19 @@ export default async function SettingsPage({
         </p>
         <ul className="settings-list">
           {feeds.map((feed) => (
-            <li key={feed.name} className="settings-row">
+            <li key={feed.name} className="settings-row settings-row--feed">
               <span className="settings-feed-name">{feed.name}</span>
               <span className="settings-feed-url">{feed.url}</span>
-              <form action={testFeed.bind(null, feed.name)}>
+              <form
+                action={testFeed.bind(null, feed.name)}
+                className="settings-feed-action settings-feed-action--test"
+              >
                 <SubmitButton label="Test" pendingLabel="Testing…" />
               </form>
-              <form action={removeFeed.bind(null, feed.name)}>
+              <form
+                action={removeFeed.bind(null, feed.name)}
+                className="settings-feed-action settings-feed-action--delete"
+              >
                 <SubmitButton
                   label="Delete"
                   pendingLabel="Deleting…"

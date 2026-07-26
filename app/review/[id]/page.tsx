@@ -101,7 +101,7 @@ export default async function ReviewDetailPage({
         <Link href="/review" className="desk-mark">
           ← The AI Wire — <em>Desk</em>
         </Link>
-        <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+        <div className="desk-actions desk-actions--detail">
           <Link href="/" className="btn">
             View the wire ↗
           </Link>
