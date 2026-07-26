@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
 CREATE TABLE IF NOT EXISTS articles (
   id             SERIAL PRIMARY KEY,
   source_feed    TEXT NOT NULL,
@@ -21,9 +23,23 @@ CREATE TABLE IF NOT EXISTS articles (
   claimed_at     TIMESTAMPTZ,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-  published_at   TIMESTAMPTZ
+  published_at   TIMESTAMPTZ,
+  embedding      vector(768),
+  embedding_model TEXT,
+  embedded_at    TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS articles_status_idx ON articles (status, updated_at);
+
+-- Existing databases predate semantic search. Keep this migration idempotent
+-- and record the model beside each vector so incompatible embedding spaces
+-- can never be mixed silently after a future model change.
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(768);
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding_model TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS articles_embedding_hnsw_idx
+ON articles USING hnsw (embedding vector_cosine_ops)
+WHERE status = 'published' AND embedding IS NOT NULL;
 
 -- Trigger URLs the operator deleted for good. The unique constraint on
 -- articles.trigger_url stops re-ingest only while the row exists, so a delete

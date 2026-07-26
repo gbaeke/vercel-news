@@ -18,7 +18,7 @@ async function insertArticle() {
 }
 
 describe('publishHandler', () => {
-  it('sets seo_summary, published_at, and status=published', async () => {
+  it('sets SEO, embedding metadata, published_at, and status=published', async () => {
     (structured as any).mockResolvedValue({ seo_summary: 'A short meta description.' });
     const article = await insertArticle();
 
@@ -30,5 +30,8 @@ describe('publishHandler', () => {
     expect(row.seo_summary).toBe('A short meta description.');
     expect(row.published_at).not.toBeNull();
     expect(row.slug).toBe('great-title');
+    expect(row.embedding).toBeTruthy();
+    expect(row.embedding_model).toBe('openai/text-embedding-3-small');
+    expect(row.embedded_at).not.toBeNull();
   });
 });

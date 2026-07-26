@@ -24,10 +24,12 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
 ## Stack
 
 - **Vercel** (Hobby) — Next.js 14 App Router, Fluid compute for the 300s tick
-- **Neon** (free tier) — Postgres via the Vercel integration, pooled connections
+- **Neon** (free tier) — Postgres with pgvector via the Vercel integration,
+  pooled connections
 - **Vercel Blob** — article thumbnails
-- **Vercel AI Gateway** — LLM + image model access with OIDC auth (no API
-  keys); models are env-configurable `provider/model` slugs
+- **Vercel AI Gateway** — text, image, and embedding model access with OIDC
+  auth (no provider API keys); models are env-configurable `provider/model`
+  slugs
 
 ## Local development
 
@@ -48,6 +50,6 @@ test suite (`npm test`) always runs this way and costs $0.
 
 See [`docs/deployment.md`](docs/deployment.md). Short version: link the Vercel
 project, add the Neon integration and a public Blob store, set `CRON_SECRET` /
-`REVIEW_PASSWORD` / `TEXT_MODEL` / `IMAGE_MODEL`, run the migration, deploy,
-and point the `tick.yml` workflow at your deployment with repo secrets
-`CRON_SECRET` and `APP_URL`.
+`REVIEW_PASSWORD` / `TEXT_MODEL` / `IMAGE_MODEL` / `EMBEDDING_MODEL`, run the
+migration and embedding backfill, deploy, and point the `tick.yml` workflow at
+your deployment with repo secrets `CRON_SECRET` and `APP_URL`.

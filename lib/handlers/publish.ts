@@ -2,6 +2,12 @@ import { query } from '../db';
 import { structured } from '../llm';
 import { loadPrompt } from '../prompts';
 import { generateSlug } from '../slug';
+import {
+  articleEmbeddingText,
+  createEmbedding,
+  embeddingModelId,
+  vectorLiteral,
+} from '../embeddings';
 import type { Article } from '../types';
 
 interface SeoResult {
@@ -21,11 +27,14 @@ async function slugExistsForOther(slug: string, id: number): Promise<boolean> {
 }
 
 export async function publishHandler(article: Article): Promise<string> {
-  const seo = await structured<SeoResult>(
-    loadPrompt('seo-system'),
-    loadPrompt('seo-user', { title: article.title ?? '', summary: article.summary ?? '' }),
-    SEO_SCHEMA
-  );
+  const [seo, embedding] = await Promise.all([
+    structured<SeoResult>(
+      loadPrompt('seo-system'),
+      loadPrompt('seo-user', { title: article.title ?? '', summary: article.summary ?? '' }),
+      SEO_SCHEMA
+    ),
+    createEmbedding(articleEmbeddingText(article)),
+  ]);
 
   const slug = await generateSlug(article.slug ?? article.title ?? String(article.id), (s) =>
     slugExistsForOther(s, article.id)
@@ -33,9 +42,23 @@ export async function publishHandler(article: Article): Promise<string> {
 
   await query(
     `UPDATE articles SET
-       seo_summary = $1, slug = $2, published_at = now(), status = 'published', claimed_at = NULL, updated_at = now()
-     WHERE id = $3`,
-    [seo.seo_summary.slice(0, 155), slug, article.id]
+       seo_summary = $1,
+       slug = $2,
+       embedding = $3::vector,
+       embedding_model = $4,
+       embedded_at = now(),
+       published_at = now(),
+       status = 'published',
+       claimed_at = NULL,
+       updated_at = now()
+     WHERE id = $5`,
+    [
+      seo.seo_summary.slice(0, 155),
+      slug,
+      vectorLiteral(embedding),
+      embeddingModelId(),
+      article.id,
+    ]
   );
   return 'published';
 }

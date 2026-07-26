@@ -853,6 +853,67 @@ img { max-width: 100%; display: block; }
 .wire-dispatch-no { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
 .wire-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
 .wire-filters-label { color: var(--mut); letter-spacing: 0.14em; text-transform: uppercase; font-size: 10.5px; margin-right: 6px; }
+.wire-search {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 720px;
+}
+.wire-search-label {
+  flex: 0 0 auto;
+  color: var(--mut);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+}
+.wire-search-control {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  border-bottom: 1px solid var(--ink);
+}
+.wire-search-input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 2px;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+.wire-search-input::placeholder { color: var(--mut); opacity: 1; }
+.wire-search-input::-webkit-search-cancel-button { cursor: pointer; }
+.wire-search-submit {
+  width: 38px;
+  border: 0;
+  background: transparent;
+  color: var(--acc);
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+}
+.wire-search-submit:hover { color: var(--ink); }
+.wire-search-submit:disabled { color: var(--mut); cursor: wait; }
+.wire-search-clear {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule);
+}
+.wire-search-note {
+  margin: 28px 0 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--acc);
+  color: var(--mut);
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
 /* lead story */
 .wire-lead { margin-top: 36px; animation: wire-rise 0.5s ease both; }
@@ -1056,6 +1117,10 @@ img { max-width: 100%; display: block; }
 /* responsive (not in the handoff, which is desktop-only; degrade gracefully) */
 @media (max-width: 760px) {
   .wire-wrap { padding: 0 20px 64px; }
+  .wire-search { align-items: flex-end; gap: 10px; }
+  .wire-search-label { display: none; }
+  .wire-search-control { flex: 1 1 auto; }
+  .wire-search-input { font-size: 16px; }
   .wire-lead-grid { grid-template-columns: 1fr; gap: 28px; }
   .wire-row { grid-template-columns: 44px 1fr; gap: 20px; }
   .wire-row .thumb-cell { grid-column: 2; }

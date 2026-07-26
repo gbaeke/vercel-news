@@ -1,14 +1,26 @@
 import { query } from './db';
+import { vectorLiteral } from './embeddings';
 import type { Article } from './types';
+
+const PUBLIC_ARTICLE_COLUMNS = `
+  id, source_feed, trigger_url, trigger_title, trigger_content, tags, persona,
+  title, content_md, content_html, summary, seo_summary, slug, thumbnail_url,
+  feedback, version, status, failed_from, error, claimed_at, created_at,
+  updated_at, published_at
+`;
 
 export async function getPublishedArticles(tags: string[] = []): Promise<Article[]> {
   if (tags.length === 0) {
     return query<Article>(
-      `SELECT * FROM articles WHERE status = 'published' ORDER BY published_at DESC`
+      `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+       FROM articles
+       WHERE status = 'published'
+       ORDER BY published_at DESC`
     );
   }
   return query<Article>(
-    `SELECT * FROM articles
+    `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+     FROM articles
      WHERE status = 'published'
        AND (tags->>'primary' = ANY($1::text[]) OR tags->'secondary' ?| $1::text[])
      ORDER BY published_at DESC`,
@@ -18,7 +30,45 @@ export async function getPublishedArticles(tags: string[] = []): Promise<Article
 
 export async function getPublishedArticleBySlug(slug: string): Promise<Article | null> {
   const rows = await query<Article>(
-    `SELECT * FROM articles WHERE status = 'published' AND slug = $1`, [slug]
+    `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+     FROM articles
+     WHERE status = 'published' AND slug = $1`,
+    [slug]
   );
   return rows[0] ?? null;
+}
+
+export async function getPublishedArticlesByEmbedding(
+  embedding: number[],
+  model: string,
+  tags: string[] = [],
+  limit = 10
+): Promise<Article[]> {
+  const safeLimit = Math.min(25, Math.max(1, Math.trunc(limit)));
+  const vector = vectorLiteral(embedding);
+
+  if (tags.length === 0) {
+    return query<Article>(
+      `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+       FROM articles
+       WHERE status = 'published'
+         AND embedding IS NOT NULL
+         AND embedding_model = $2
+       ORDER BY embedding <=> $1::vector, published_at DESC
+       LIMIT $3`,
+      [vector, model, safeLimit]
+    );
+  }
+
+  return query<Article>(
+    `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+     FROM articles
+     WHERE status = 'published'
+       AND embedding IS NOT NULL
+       AND embedding_model = $2
+       AND (tags->>'primary' = ANY($3::text[]) OR tags->'secondary' ?| $3::text[])
+     ORDER BY embedding <=> $1::vector, published_at DESC
+     LIMIT $4`,
+    [vector, model, tags, safeLimit]
+  );
 }

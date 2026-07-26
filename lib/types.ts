@@ -22,6 +22,9 @@ export interface Article {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  embedding?: string | null;
+  embedding_model?: string | null;
+  embedded_at?: string | null;
 }
 
 export interface FeedState {
