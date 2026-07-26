@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getTags } from '../../../lib/tags';
 import { getFeeds } from '../../../lib/feeds';
 import { createTag, removeTag, createFeed, removeFeed, testFeed } from './actions';
+import { SubmitButton } from '../submit-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,9 +42,11 @@ export default async function SettingsPage({
             <li key={tag} className="settings-row">
               <span className="tag-chip">{tag}</span>
               <form action={removeTag.bind(null, tag)}>
-                <button type="submit" className="btn btn--danger">
-                  Delete
-                </button>
+                <SubmitButton
+                  label="Delete"
+                  pendingLabel="Deleting…"
+                  className="btn btn--danger"
+                />
               </form>
             </li>
           ))}
@@ -57,9 +60,11 @@ export default async function SettingsPage({
             maxLength={30}
             className="settings-input"
           />
-          <button type="submit" className="btn btn--primary">
-            Add tag
-          </button>
+          <SubmitButton
+            label="Add tag"
+            pendingLabel="Adding tag…"
+            className="btn btn--primary"
+          />
         </form>
       </section>
 
@@ -75,14 +80,14 @@ export default async function SettingsPage({
               <span className="settings-feed-name">{feed.name}</span>
               <span className="settings-feed-url">{feed.url}</span>
               <form action={testFeed.bind(null, feed.name)}>
-                <button type="submit" className="btn">
-                  Test
-                </button>
+                <SubmitButton label="Test" pendingLabel="Testing…" />
               </form>
               <form action={removeFeed.bind(null, feed.name)}>
-                <button type="submit" className="btn btn--danger">
-                  Delete
-                </button>
+                <SubmitButton
+                  label="Delete"
+                  pendingLabel="Deleting…"
+                  className="btn btn--danger"
+                />
               </form>
             </li>
           ))}
@@ -103,9 +108,11 @@ export default async function SettingsPage({
             required
             className="settings-input settings-input--wide"
           />
-          <button type="submit" className="btn btn--primary">
-            Validate &amp; add
-          </button>
+          <SubmitButton
+            label="Validate & add"
+            pendingLabel="Validating feed…"
+            className="btn btn--primary"
+          />
         </form>
       </section>
     </div>

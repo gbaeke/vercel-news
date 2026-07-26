@@ -3,6 +3,7 @@ import { query } from '../../lib/db';
 import { formatDateTime } from '../../lib/format';
 import { runTickNow } from './[id]/actions';
 import { submitStoryUrl } from './actions';
+import { SubmitButton } from './submit-button';
 import { StatusChip } from '../ui';
 import type { Article } from '../../lib/types';
 
@@ -40,9 +41,10 @@ export default async function ReviewListPage({
             Settings
           </Link>
           <form action={runTickNow}>
-            <button type="submit" className="btn">
-              Check feeds &amp; process
-            </button>
+            <SubmitButton
+              label="Check feeds & process"
+              pendingLabel="Checking feeds & processing…"
+            />
           </form>
         </div>
       </header>
@@ -65,9 +67,11 @@ export default async function ReviewListPage({
             className="settings-input settings-input--wide"
             aria-label="Story URL"
           />
-          <button type="submit" className="btn btn--primary">
-            Submit story
-          </button>
+          <SubmitButton
+            label="Submit story"
+            pendingLabel="Submitting story…"
+            className="btn btn--primary"
+          />
         </form>
       </section>
 

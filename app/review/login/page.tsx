@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { login } from './actions';
+import { SubmitButton } from '../submit-button';
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
   const errorMessage = searchParams.error === 'config'
@@ -22,9 +23,11 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         <form action={login}>
           <label htmlFor="password">Desk password</label>
           <input id="password" type="password" name="password" autoFocus required />
-          <button type="submit" className="btn btn--primary btn--wide">
-            Open the desk
-          </button>
+          <SubmitButton
+            label="Open the desk"
+            pendingLabel="Opening desk…"
+            className="btn btn--primary btn--wide"
+          />
           {errorMessage && (
             <p className="error-note" style={{ margin: 0 }}>
               {errorMessage}

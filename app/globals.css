@@ -350,6 +350,10 @@ img { max-width: 100%; display: block; }
 .chip--dead { color: var(--ink-soft); background: transparent; }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
   font-family: var(--font-mono), monospace;
   font-size: 0.72rem;
   letter-spacing: 0.09em;
@@ -362,6 +366,18 @@ img { max-width: 100%; display: block; }
   transition: background 0.12s ease, color 0.12s ease;
 }
 .btn:hover { background: var(--riso-wash); }
+.btn:disabled { opacity: 0.68; }
+.btn[aria-busy='true'] { cursor: progress; }
+.btn-spinner {
+  width: 0.85em;
+  height: 0.85em;
+  flex: 0 0 auto;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: desk-spin 0.7s linear infinite;
+}
+@keyframes desk-spin { to { transform: rotate(360deg); } }
 .btn--primary { background: var(--riso); color: var(--paper); }
 .btn--primary:hover { background: var(--riso-deep); }
 .btn--danger { border-color: var(--bad); color: var(--bad); }
@@ -601,6 +617,7 @@ img { max-width: 100%; display: block; }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+  .btn-spinner { animation: none; }
   .story-row:hover .story-thumb,
   .lead:hover .lead-thumb { transform: none; }
 }

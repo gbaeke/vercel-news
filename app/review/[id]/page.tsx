@@ -4,6 +4,7 @@ import { formatDateTime } from '../../../lib/format';
 import { StatusChip } from '../../ui';
 import type { Article } from '../../../lib/types';
 import { parseArticleId } from '../../../lib/reviewInput';
+import { SubmitButton } from '../submit-button';
 import {
   approveArticle,
   requestRewrite,
@@ -151,40 +152,52 @@ export default async function ReviewDetailPage({
           {article.status === 'in_review' && (
             <>
               <form action={approve}>
-                <button type="submit" className="btn btn--primary btn--wide">
-                  Approve &amp; publish
-                </button>
+                <SubmitButton
+                  label="Approve & publish"
+                  pendingLabel="Publishing…"
+                  className="btn btn--primary btn--wide"
+                />
               </form>
               <form action={rewrite} style={{ display: 'grid', gap: '0.5rem' }}>
                 <textarea name="feedback" placeholder="What should change in the rewrite?" required />
-                <button type="submit" className="btn btn--wide">
-                  Request rewrite
-                </button>
+                <SubmitButton
+                  label="Request rewrite"
+                  pendingLabel="Requesting rewrite…"
+                  className="btn btn--wide"
+                />
               </form>
               <form action={image}>
-                <button type="submit" className="btn btn--wide">
-                  New thumbnail
-                </button>
+                <SubmitButton
+                  label="New thumbnail"
+                  pendingLabel="Requesting thumbnail…"
+                  className="btn btn--wide"
+                />
               </form>
               <form action={decline}>
-                <button type="submit" className="btn btn--danger btn--wide">
-                  Decline
-                </button>
+                <SubmitButton
+                  label="Decline"
+                  pendingLabel="Declining…"
+                  className="btn btn--danger btn--wide"
+                />
               </form>
             </>
           )}
           {article.status === 'failed' && (
             <form action={retry}>
-              <button type="submit" className="btn btn--primary btn--wide">
-                Retry from “{article.failed_from}”
-              </button>
+              <SubmitButton
+                label={`Retry from “${article.failed_from}”`}
+                pendingLabel={`Retrying from “${article.failed_from}”…`}
+                className="btn btn--primary btn--wide"
+              />
             </form>
           )}
           {article.status === 'published' && (
             <form action={unpublish}>
-              <button type="submit" className="btn btn--wide">
-                Unpublish → back to review
-              </button>
+              <SubmitButton
+                label="Unpublish → back to review"
+                pendingLabel="Unpublishing…"
+                className="btn btn--wide"
+              />
               <p className="meta" style={{ margin: '0.4rem 0 0' }}>
                 Pulls it off the site and onto the desk. The slug is kept, so
                 re-approving restores the same URL.
@@ -206,9 +219,11 @@ export default async function ReviewDetailPage({
               next scheduled run will not ingest it again. Cannot be undone.
             </p>
             <form action={remove}>
-              <button type="submit" className="btn btn--danger btn--wide">
-                Delete permanently
-              </button>
+              <SubmitButton
+                label="Delete permanently"
+                pendingLabel="Deleting permanently…"
+                className="btn btn--danger btn--wide"
+              />
             </form>
           </details>
 
