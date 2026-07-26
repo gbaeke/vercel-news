@@ -40,7 +40,7 @@ export default async function ReviewListPage({
           </Link>
           <form action={runTickNow}>
             <button type="submit" className="btn">
-              Run tick now
+              Check feeds &amp; process
             </button>
           </form>
         </div>
@@ -52,7 +52,7 @@ export default async function ReviewListPage({
       {articles.length === 0 && (
         <div className="empty-state">
           <span className="meta">desk clear</span>
-          <p>No articles yet. The next scheduled tick will pull from the feeds, or run one now.</p>
+          <p>No articles yet. The next scheduled run will check the feeds, or you can process them now.</p>
         </div>
       )}
 

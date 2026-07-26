@@ -203,7 +203,7 @@ export default async function ReviewDetailPage({
             <summary>Danger zone</summary>
             <p className="meta" style={{ margin: '0.6rem 0', textTransform: 'none' }}>
               Deletes the article for good and remembers the source URL, so the
-              next tick will not ingest it again. Cannot be undone.
+              next scheduled run will not ingest it again. Cannot be undone.
             </p>
             <form action={remove}>
               <button type="submit" className="btn btn--danger btn--wide">

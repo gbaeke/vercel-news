@@ -75,7 +75,7 @@ export async function approveArticle(rawId: number) {
       feedbackUrl(
         articlePath(id),
         'error',
-        'The article was approved, but publishing failed. It remains queued and the next tick will retry it.'
+        'The article was approved, but publishing failed. It remains queued and the next scheduled run will retry it.'
       )
     );
   }
@@ -199,7 +199,7 @@ export async function runTickNow() {
       feedbackUrl(
         '/review',
         'error',
-        'The tick could not finish because a service was unavailable. No completed work was rolled back; please try again.'
+        'Processing could not finish because a service was unavailable. No completed work was rolled back; please try again.'
       )
     );
   }
@@ -235,5 +235,5 @@ export async function runTickNow() {
   ].join(' · '), MAX_TICK_MESSAGE_LENGTH);
 
   const key = ingested.some((r) => r.error) || processed.some((p) => p.to === 'failed') ? 'error' : 'notice';
-  redirect(feedbackUrl('/review', key, `Tick done — ${summary}`));
+  redirect(feedbackUrl('/review', key, `Processing complete — ${summary}`));
 }
