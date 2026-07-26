@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import { login } from './actions';
 import { SubmitButton } from '../submit-button';
+import { safeReviewReturnTo } from '../../../lib/reviewReturnTo';
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: { error?: string; next?: string };
+}) {
+  const returnTo = safeReviewReturnTo(searchParams.next);
   const errorMessage = searchParams.error === 'config'
     ? 'The desk password is not configured on the server.'
     : searchParams.error === 'unavailable'
@@ -21,6 +27,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           Editor&apos;s desk
         </p>
         <form action={login}>
+          <input type="hidden" name="next" value={returnTo} />
           <label htmlFor="password">Desk password</label>
           <input id="password" type="password" name="password" autoFocus required />
           <SubmitButton
