@@ -100,7 +100,7 @@ describe('ingestFeeds', () => {
     const broken = results.find((r) => r.feed === brokenFeedName);
     expect(broken?.inserted).toBe(0);
     expect(broken?.error).toBeTruthy();
-    expect(results.filter((r) => !r.error).every((r) => r.inserted === 1)).toBe(true);
+    expect(results.filter((r) => !r.error).reduce((total, r) => total + r.inserted, 0)).toBe(1);
   });
 
   it('puts a timeout signal on real feed requests', async () => {

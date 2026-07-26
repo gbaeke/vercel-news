@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import { query } from './db';
 import { getFeeds, MAX_ITEMS_PER_POLL } from './feeds';
 import { htmlToText } from './text';
+import { enqueueArticle } from './articleQueue';
 
 export interface IngestDeps {
   fetchFeedXml?: (url: string) => Promise<string>;
@@ -67,16 +68,18 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResu
     // costs a real story its slot in this poll.
     const live = await withoutDeleted(fresh);
     const toInsert = live.slice(0, MAX_ITEMS_PER_POLL);
+    let inserted = 0;
 
     for (const item of toInsert.slice().reverse()) {
       if (!item.link) continue;
       const provisional = item.contentSnippet ?? (item.content ? htmlToText(item.content) : null);
-      await query(
-        `INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, status)
-         VALUES ($1, $2, $3, $4, 'new')
-         ON CONFLICT (trigger_url) DO NOTHING`,
-        [feed.name, item.link, item.title ?? null, provisional]
-      );
+      const result = await enqueueArticle({
+        sourceFeed: feed.name,
+        url: item.link,
+        title: item.title ?? null,
+        content: provisional,
+      });
+      if (result.outcome === 'inserted') inserted += 1;
     }
 
     const newest = items[0]?.link;
@@ -88,8 +91,8 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResu
       );
     }
 
-    console.log(`[ingest] ${feed.name}: ${toInsert.length} new item(s)`);
-    results.push({ feed: feed.name, inserted: toInsert.length });
+    console.log(`[ingest] ${feed.name}: ${inserted} new item(s)`);
+    results.push({ feed: feed.name, inserted });
   }
 
   return results;

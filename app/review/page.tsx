@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { query } from '../../lib/db';
 import { formatDateTime } from '../../lib/format';
 import { runTickNow } from './[id]/actions';
+import { submitStoryUrl } from './actions';
 import { StatusChip } from '../ui';
 import type { Article } from '../../lib/types';
 
@@ -48,6 +49,27 @@ export default async function ReviewListPage({
 
       {searchParams.error && <p className="error-note">{searchParams.error}</p>}
       {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
+
+      <section>
+        <h2 className="section-head">Submit a story</h2>
+        <p className="meta">
+          Paste a source URL to put it in the same processing queue as a story discovered through RSS.
+        </p>
+        <form action={submitStoryUrl} className="settings-form">
+          <input
+            type="url"
+            name="url"
+            placeholder="https://example.com/story"
+            required
+            maxLength={2048}
+            className="settings-input settings-input--wide"
+            aria-label="Story URL"
+          />
+          <button type="submit" className="btn btn--primary">
+            Submit story
+          </button>
+        </form>
+      </section>
 
       {articles.length === 0 && (
         <div className="empty-state">
