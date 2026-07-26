@@ -2,6 +2,14 @@ import Link from 'next/link';
 import { login } from './actions';
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
+  const errorMessage = searchParams.error === 'config'
+    ? 'The desk password is not configured on the server.'
+    : searchParams.error === 'unavailable'
+      ? 'The desk could not create a session. Please try again.'
+      : searchParams.error
+        ? 'Wrong password. Try again.'
+        : null;
+
   return (
     <div className="login-wrap">
       <main className="login-card">
@@ -17,9 +25,9 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           <button type="submit" className="btn btn--primary btn--wide">
             Open the desk
           </button>
-          {searchParams.error && (
+          {errorMessage && (
             <p className="error-note" style={{ margin: 0 }}>
-              Wrong password. Try again.
+              {errorMessage}
             </p>
           )}
         </form>
