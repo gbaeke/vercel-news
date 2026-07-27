@@ -163,6 +163,25 @@ describe('review actions', () => {
     expect(del).toHaveBeenCalledWith(thumb);
   });
 
+  it('delete also removes a ready narrated MP3 from blob storage', async () => {
+    const audioUrl = 'https://x.public.blob.vercel-storage.com/audio/42/v1-abc.mp3';
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, title, content_md, slug, status, published_at)
+       VALUES ('openai', 'https://example.com/with-audio', 'Audio', 'Body', 'audio', 'published', now())
+       RETURNING id`
+    );
+    await query(
+      `INSERT INTO article_audio (
+         article_id, article_version, source_hash, status, model, voice,
+         blob_url, byte_length, media_type, generated_at
+       ) VALUES ($1, 1, 'hash', 'ready', 'openai/tts-1', 'alloy', $2, 123, 'audio/mpeg', now())`,
+      [rows[0].id, audioUrl]
+    );
+    const del = vi.fn(async () => {});
+    await deleteArticleById(rows[0].id, { del });
+    expect(del).toHaveBeenCalledWith(audioUrl);
+  });
+
   it('delete leaves the thumbnail alone when another article still uses it', async () => {
     const shared = 'https://x.public.blob.vercel-storage.com/thumbnails/43-1784897751935.png';
     const rows = await query<{ id: number }>(

@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getPublishedArticles, getPublishedArticleBySlug } from '../../../lib/publicQueries';
+import {
+  getPublishedArticles,
+  getPublishedArticleBySlug,
+  getReadyArticleAudio,
+} from '../../../lib/publicQueries';
 import { formatDate } from '../../../lib/format';
 import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from '../../wire';
 
@@ -52,6 +56,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   // Dispatch numbers count up from the oldest published story.
   const all = await getPublishedArticles();
+  const audio = await getReadyArticleAudio(article.id);
   const idx = all.findIndex((a) => a.id === article.id);
   const dispatchNo = idx >= 0 ? all.length - idx : article.id;
   const more = all.filter((a) => a.id !== article.id).slice(0, 4);
@@ -89,6 +94,18 @@ export default async function ArticlePage({ params }: { params: { slug: string }
               <span>FIG. 01</span>
             </figcaption>
           </figure>
+        )}
+
+        {audio?.blob_url && (
+          <section className="wire-audio" aria-labelledby="listen-heading">
+            <div>
+              <p id="listen-heading" className="mono wire-audio-label">Listen to this dispatch</p>
+              <p className="wire-audio-note">Narrated by an AI-generated voice.</p>
+            </div>
+            <audio controls preload="none" src={audio.blob_url}>
+              Your browser does not support the audio player.
+            </audio>
+          </section>
         )}
 
         <div className="wire-body">

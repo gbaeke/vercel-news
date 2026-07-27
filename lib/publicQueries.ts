@@ -1,6 +1,6 @@
 import { query } from './db';
 import { vectorLiteral } from './embeddings';
-import type { Article } from './types';
+import type { Article, ArticleAudio } from './types';
 
 const PUBLIC_ARTICLE_COLUMNS = `
   id, source_feed, trigger_url, trigger_title, trigger_content, tags, persona,
@@ -34,6 +34,20 @@ export async function getPublishedArticleBySlug(slug: string): Promise<Article |
      FROM articles
      WHERE status = 'published' AND slug = $1`,
     [slug]
+  );
+  return rows[0] ?? null;
+}
+
+export async function getReadyArticleAudio(articleId: number): Promise<ArticleAudio | null> {
+  const rows = await query<ArticleAudio>(
+    `SELECT article_audio.*
+     FROM article_audio
+     JOIN articles ON articles.id = article_audio.article_id
+     WHERE article_audio.article_id = $1
+       AND article_audio.status = 'ready'
+       AND article_audio.article_version = articles.version
+       AND articles.status = 'published'`,
+    [articleId]
   );
   return rows[0] ?? null;
 }

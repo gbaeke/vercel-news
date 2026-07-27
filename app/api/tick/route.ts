@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { isAuthorized } from '../../../lib/auth';
 import { runTick } from '../../../lib/tick';
 import { ingestFeeds } from '../../../lib/ingest';
+import { runAudioTick } from '../../../lib/audio';
 
 export async function POST(req: NextRequest) {
   if (!isAuthorized(req.headers.get('authorization'))) {
@@ -18,9 +19,14 @@ export async function POST(req: NextRequest) {
   }
 
   const processed = await runTick();
+  const audio = await runAudioTick();
   if (processed.some((p) => p.to === 'published')) {
     revalidatePath('/');
     revalidatePath('/articles/[slug]', 'page');
   }
-  return NextResponse.json({ ingested, processed });
+  if (audio.some((item) => item.to === 'ready')) {
+    revalidatePath('/podcast.xml');
+    revalidatePath('/articles/[slug]', 'page');
+  }
+  return NextResponse.json({ ingested, processed, audio });
 }

@@ -31,3 +31,24 @@ export interface FeedState {
   feed_name: string;
   last_url: string | null;
 }
+
+export type ArticleAudioStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
+export interface ArticleAudio {
+  article_id: number;
+  article_version: number;
+  source_hash: string;
+  status: ArticleAudioStatus;
+  model: string;
+  voice: string;
+  blob_url: string | null;
+  byte_length: string | null;
+  media_type: string | null;
+  attempt_count: number;
+  next_attempt_at: string | null;
+  claimed_at: string | null;
+  last_error: string | null;
+  generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

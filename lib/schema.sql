@@ -41,6 +41,48 @@ CREATE INDEX IF NOT EXISTS articles_embedding_hnsw_idx
 ON articles USING hnsw (embedding vector_cosine_ops)
 WHERE status = 'published' AND embedding IS NOT NULL;
 
+-- The current narrated edition of an article. Audio is deliberately separate
+-- from the editorial state machine: publishing must succeed even if speech or
+-- Blob storage is temporarily unavailable. Rewrites increment articles.version
+-- and replace this row with a fresh pending job when the correction is
+-- published.
+CREATE TABLE IF NOT EXISTS article_audio (
+  article_id      INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+  article_version INTEGER NOT NULL CHECK (article_version > 0),
+  source_hash     TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'processing', 'ready', 'failed')),
+  model           TEXT NOT NULL,
+  voice           TEXT NOT NULL,
+  blob_url        TEXT,
+  byte_length     BIGINT CHECK (byte_length IS NULL OR byte_length > 0),
+  media_type      TEXT,
+  attempt_count   INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  next_attempt_at TIMESTAMPTZ,
+  claimed_at      TIMESTAMPTZ,
+  last_error      TEXT,
+  generated_at    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (
+    status <> 'ready'
+    OR (
+      blob_url IS NOT NULL
+      AND byte_length IS NOT NULL
+      AND media_type IS NOT NULL
+      AND generated_at IS NOT NULL
+    )
+  )
+);
+
+CREATE INDEX IF NOT EXISTS article_audio_queue_idx
+ON article_audio (next_attempt_at, updated_at)
+WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS article_audio_processing_idx
+ON article_audio (claimed_at)
+WHERE status = 'processing';
+
 -- Trigger URLs the operator deleted for good. The unique constraint on
 -- articles.trigger_url stops re-ingest only while the row exists, so a delete
 -- leaves a tombstone here and ingest skips anything listed.

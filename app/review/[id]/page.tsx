@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { query } from '../../../lib/db';
 import { formatDateTime } from '../../../lib/format';
 import { StatusChip } from '../../ui';
-import type { Article } from '../../../lib/types';
+import type { Article, ArticleAudio } from '../../../lib/types';
 import { parseArticleId } from '../../../lib/reviewInput';
 import { SubmitButton } from '../submit-button';
 import {
@@ -13,6 +13,7 @@ import {
   retryArticle,
   unpublishArticle,
   deleteArticle,
+  retryArticleAudio,
 } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -81,7 +82,10 @@ export default async function ReviewDetailPage({
   const id = parseArticleId(params.id);
   if (id === null) return <NotFoundState />;
 
-  const [article] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [id]);
+  const [[article], [audio]] = await Promise.all([
+    query<Article>(`SELECT * FROM articles WHERE id = $1`, [id]),
+    query<ArticleAudio>(`SELECT * FROM article_audio WHERE article_id = $1`, [id]),
+  ]);
 
   if (!article) {
     return <NotFoundState />;
@@ -94,6 +98,7 @@ export default async function ReviewDetailPage({
   const unpublish = unpublishArticle.bind(null, article.id);
   const rewrite = requestRewrite.bind(null, article.id);
   const remove = deleteArticle.bind(null, article.id);
+  const retryAudio = retryArticleAudio.bind(null, article.id);
 
   return (
     <div className="shell">
@@ -192,17 +197,65 @@ export default async function ReviewDetailPage({
             </form>
           )}
           {article.status === 'published' && (
-            <form action={unpublish}>
-              <SubmitButton
-                label="Unpublish → back to review"
-                pendingLabel="Unpublishing…"
-                className="btn btn--wide"
-              />
-              <p className="meta" style={{ margin: '0.4rem 0 0' }}>
-                Pulls it off the site and onto the desk. The slug is kept, so
-                re-approving restores the same URL.
-              </p>
-            </form>
+            <>
+              <section className="desk-audio">
+                <h2>Audio edition</h2>
+                {!audio && (
+                  <p className="meta">
+                    Not queued. This can happen if audio enqueueing was unavailable when the article went live.
+                  </p>
+                )}
+                {audio?.status === 'ready' && audio.blob_url && (
+                  <>
+                    <audio controls preload="none" src={audio.blob_url}>
+                      Your browser does not support the audio player.
+                    </audio>
+                    <p className="meta">
+                      Ready · {audio.voice} · {audio.model}
+                    </p>
+                  </>
+                )}
+                {audio?.status === 'pending' && (
+                  <p className="meta">
+                    Queued
+                    {audio.next_attempt_at ? ` · next attempt ${formatDateTime(audio.next_attempt_at)}` : ''}
+                    {audio.last_error ? ` · ${audio.last_error}` : ''}
+                  </p>
+                )}
+                {audio?.status === 'processing' && (
+                  <p className="meta">Generating · attempt {audio.attempt_count} of 3</p>
+                )}
+                {audio?.status === 'failed' && (
+                  <p className="error-note" style={{ margin: 0 }}>
+                    Audio failed after {audio.attempt_count} attempt{audio.attempt_count === 1 ? '' : 's'}.
+                    {audio.last_error ? ` ${audio.last_error}` : ''}
+                  </p>
+                )}
+                {(!audio || audio.status === 'failed' || audio.status === 'ready') && (
+                  <form action={retryAudio}>
+                    <SubmitButton
+                      label={audio?.status === 'ready' ? 'Regenerate audio' : 'Queue audio'}
+                      pendingLabel="Queueing audio…"
+                      className="btn btn--wide"
+                    />
+                  </form>
+                )}
+                <p className="meta">
+                  Public feed: <a href="/podcast.xml">/podcast.xml ↗</a>
+                </p>
+              </section>
+              <form action={unpublish}>
+                <SubmitButton
+                  label="Unpublish → back to review"
+                  pendingLabel="Unpublishing…"
+                  className="btn btn--wide"
+                />
+                <p className="meta" style={{ margin: '0.4rem 0 0' }}>
+                  Pulls it off the site and onto the desk. The slug is kept, so
+                  re-approving restores the same URL.
+                </p>
+              </form>
+            </>
           )}
           {!['in_review', 'failed', 'published'].includes(article.status) && (
             <p className="meta" style={{ margin: 0 }}>

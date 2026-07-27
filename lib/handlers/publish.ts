@@ -8,6 +8,7 @@ import {
   embeddingModelId,
   vectorLiteral,
 } from '../embeddings';
+import { enqueueArticleAudioById } from '../audio';
 import type { Article } from '../types';
 
 interface SeoResult {
@@ -60,5 +61,18 @@ export async function publishHandler(article: Article): Promise<string> {
       article.id,
     ]
   );
+
+  // Publication is the editorial source of truth. Queue narration afterwards
+  // and best-effort so a speech/queue outage can never roll a live article
+  // back to "failed". The desk exposes a manual recovery button if this rare
+  // enqueue step itself fails.
+  try {
+    const result = await enqueueArticleAudioById(article.id);
+    if (!result.ok) {
+      console.error(`[publish] could not queue audio for article ${article.id}: ${result.reason}`);
+    }
+  } catch (error) {
+    console.error(`[publish] article ${article.id} is live but audio enqueue failed`, error);
+  }
   return 'published';
 }

@@ -33,5 +33,11 @@ describe('publishHandler', () => {
     expect(row.embedding).toBeTruthy();
     expect(row.embedding_model).toBe('openai/text-embedding-3-small');
     expect(row.embedded_at).not.toBeNull();
+
+    const [audio] = await query<any>(`SELECT * FROM article_audio WHERE article_id = $1`, [article.id]);
+    expect(audio.status).toBe('pending');
+    expect(audio.article_version).toBe(1);
+    expect(audio.model).toBe('openai/tts-1');
+    expect(audio.voice).toBe('alloy');
   });
 });
