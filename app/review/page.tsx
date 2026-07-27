@@ -4,6 +4,7 @@ import { formatDateTime } from '../../lib/format';
 import { runTickNow } from './[id]/actions';
 import { submitStoryUrl } from './actions';
 import { SubmitButton } from './submit-button';
+import { RefreshButton } from './refresh-button';
 import { StatusChip } from '../ui';
 import type { Article } from '../../lib/types';
 
@@ -34,6 +35,7 @@ export default async function ReviewListPage({
           The AI Wire — <em>Desk</em>
         </Link>
         <div className="desk-actions">
+          <RefreshButton />
           <Link href="/" className="btn">
             View the wire ↗
           </Link>
