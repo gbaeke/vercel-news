@@ -8,7 +8,7 @@ export function RefreshButton() {
   return (
     <button
       type="button"
-      className="btn"
+      className="btn desk-actions__wide"
       onClick={() => router.refresh()}
       aria-label="Refresh the desk"
     >

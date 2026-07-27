@@ -35,13 +35,13 @@ export default async function ReviewListPage({
           The AI Wire — <em>Desk</em>
         </Link>
         <div className="desk-actions">
-          <RefreshButton />
           <Link href="/" className="btn">
             View the wire ↗
           </Link>
           <Link href="/review/settings" className="btn">
             Settings
           </Link>
+          <RefreshButton />
           <form action={runTickNow} className="desk-actions__wide">
             <SubmitButton
               label="Check feeds & process"
