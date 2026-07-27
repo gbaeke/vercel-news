@@ -494,6 +494,15 @@ img { max-width: 100%; display: block; }
   padding: 0.6rem;
   resize: vertical;
 }
+.desk-audio {
+  display: grid;
+  gap: 0.55rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px solid var(--line);
+}
+.desk-audio audio { width: 100%; }
+.desk-audio p { margin: 0; text-transform: none; }
 .desk-meta { display: grid; gap: 0.4rem; margin-top: 0.5rem; }
 .desk-meta div { display: flex; justify-content: space-between; gap: 1rem; }
 
@@ -1003,6 +1012,21 @@ img { max-width: 100%; display: block; }
 .wire-standfirst { margin: 0; font-size: 21px; line-height: 1.5; color: var(--txt); font-style: italic; }
 .wire-hero { margin: 44px 0 0; position: relative; }
 .wire-figcaption { margin-top: 10px; font-size: 11px; letter-spacing: 0.1em; color: var(--mut); display: flex; justify-content: space-between; }
+.wire-audio {
+  max-width: 840px;
+  margin: 36px 0 0;
+  padding: 18px 20px;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--acc);
+  background: var(--paper-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 420px);
+  gap: 24px;
+  align-items: center;
+}
+.wire-audio-label { margin: 0; color: var(--ink); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+.wire-audio-note { margin: 5px 0 0; color: var(--mut); font-size: 14px; }
+.wire-audio audio { display: block; width: 100%; }
 .wire-body {
   max-width: 840px;
   margin: 56px 0 0;
@@ -1069,6 +1093,10 @@ img { max-width: 100%; display: block; }
 }
 /* Long unbroken tokens — bare URLs, package paths — wrap instead of spilling. */
 .wire-body { overflow-wrap: break-word; }
+
+@media (max-width: 680px) {
+  .wire-audio { grid-template-columns: 1fr; gap: 14px; }
+}
 
 .wire-source { margin: 8px 0 0; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 

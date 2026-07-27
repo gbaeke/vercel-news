@@ -1,5 +1,9 @@
 import { query } from './db';
-import { deleteThumbnailIfOrphaned, type BlobCleanupDeps } from './blobCleanup';
+import {
+  deleteAudioIfOrphaned,
+  deleteThumbnailIfOrphaned,
+  type BlobCleanupDeps,
+} from './blobCleanup';
 import { publishHandler } from './handlers/publish';
 import type { Article } from './types';
 
@@ -120,19 +124,29 @@ export async function deleteArticleById(
   id: number,
   deps: BlobCleanupDeps = {}
 ): Promise<ReviewMutationResult> {
-  const rows = await query<{ thumbnail_url: string | null }>(
-    `WITH gone AS (
-       DELETE FROM articles WHERE id = $1 RETURNING trigger_url, thumbnail_url
+  const rows = await query<{ thumbnail_url: string | null; audio_url: string | null }>(
+    `WITH doomed AS (
+       SELECT articles.trigger_url, articles.thumbnail_url, article_audio.blob_url AS audio_url
+       FROM articles
+       LEFT JOIN article_audio ON article_audio.article_id = articles.id
+       WHERE articles.id = $1
+     ), gone AS (
+       DELETE FROM articles
+       WHERE id = $1
+       RETURNING trigger_url
      ), tombstone AS (
        INSERT INTO deleted_urls (url)
        SELECT trigger_url FROM gone
        ON CONFLICT (url) DO NOTHING
      )
-     SELECT thumbnail_url FROM gone`,
+     SELECT doomed.thumbnail_url, doomed.audio_url
+     FROM doomed
+     WHERE EXISTS (SELECT 1 FROM gone)`,
     [id]
   );
   if (rows.length === 0) return { ok: false, reason: 'not_found' };
 
   await deleteThumbnailIfOrphaned(rows[0]?.thumbnail_url, deps);
+  await deleteAudioIfOrphaned(rows[0]?.audio_url, deps);
   return { ok: true };
 }

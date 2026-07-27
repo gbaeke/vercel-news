@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { runTick } from '../../../lib/tick';
 import { ingestFeeds } from '../../../lib/ingest';
+import { enqueueArticleAudioById, runAudioTick } from '../../../lib/audio';
 import {
   approveAndPublishById,
   requestRewriteById,
@@ -53,6 +54,7 @@ function logUnexpected(action: string, context: Record<string, unknown>, error: 
 function revalidateArticleViews(): void {
   revalidatePath('/');
   revalidatePath('/articles/[slug]', 'page');
+  revalidatePath('/podcast.xml');
   revalidatePath('/review');
 }
 
@@ -162,6 +164,26 @@ export async function unpublishArticle(rawId: number) {
   redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Article unpublished and returned to review.'));
 }
 
+export async function retryArticleAudio(rawId: number) {
+  const id = validArticleId(rawId);
+  let result: Awaited<ReturnType<typeof enqueueArticleAudioById>>;
+  try {
+    result = await enqueueArticleAudioById(id, { forceRetry: true });
+  } catch (error) {
+    logUnexpected('queue article audio', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not queue the audio right now. Please try again.'));
+  }
+
+  revalidateArticleViews();
+  if (!result.ok) {
+    const message = result.reason === 'not_found'
+      ? 'That article no longer exists.'
+      : 'Only a published article can be narrated.';
+    redirect(feedbackUrl(articlePath(id), 'error', message));
+  }
+  redirect(feedbackUrl(articlePath(id), 'notice', 'Audio queued. The next processing run will generate it.'));
+}
+
 // The detail page is gone once the row is, so land the operator back on the
 // desk with a receipt instead of a 404.
 export async function deleteArticle(rawId: number) {
@@ -190,9 +212,11 @@ function shortened(value: string, max = 160): string {
 export async function runTickNow() {
   let ingested: Awaited<ReturnType<typeof ingestFeeds>>;
   let processed: Awaited<ReturnType<typeof runTick>>;
+  let audio: Awaited<ReturnType<typeof runAudioTick>>;
   try {
     ingested = await ingestFeeds();
     processed = await runTick();
+    audio = await runAudioTick();
   } catch (error) {
     logUnexpected('run tick now', {}, error);
     redirect(
@@ -206,6 +230,10 @@ export async function runTickNow() {
 
   if (processed.some((p) => p.to === 'published')) {
     revalidatePath('/');
+    revalidatePath('/articles/[slug]', 'page');
+  }
+  if (audio.some((item) => item.to === 'ready')) {
+    revalidatePath('/podcast.xml');
     revalidatePath('/articles/[slug]', 'page');
   }
   revalidatePath('/review');
@@ -232,8 +260,15 @@ export async function runTickNow() {
   const summary = shortened([
     feedParts.length > 0 ? `ingest: ${feedParts.join(', ')}` : 'ingest: no feeds configured',
     articleParts.length > 0 ? `processed: ${articleParts.join(', ')}` : 'processed: queue empty',
+    audio.length > 0
+      ? `audio: ${audio.map((item) => `#${item.articleId} → ${item.to}`).join(', ')}`
+      : 'audio: queue empty',
   ].join(' · '), MAX_TICK_MESSAGE_LENGTH);
 
-  const key = ingested.some((r) => r.error) || processed.some((p) => p.to === 'failed') ? 'error' : 'notice';
+  const key = ingested.some((r) => r.error)
+    || processed.some((p) => p.to === 'failed')
+    || audio.some((item) => item.to === 'failed')
+    ? 'error'
+    : 'notice';
   redirect(feedbackUrl('/review', key, `Processing complete — ${summary}`));
 }

@@ -20,13 +20,16 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
 - **A human gates publication.** The password-protected `/review` desk shows
   every draft with its pipeline position; approve publishes immediately,
   rewrite/decline/retry are one click each.
+- **Published articles become podcast episodes.** A separate durable audio
+  queue generates an MP3 with `openai/tts-1`, stores it in Vercel Blob, adds a
+  player to the article, and exposes ready episodes at `/podcast.xml`.
 
 ## Stack
 
 - **Vercel** (Hobby) — Next.js 14 App Router, Fluid compute for the 300s tick
 - **Neon** (free tier) — Postgres with pgvector via the Vercel integration,
   pooled connections
-- **Vercel Blob** — article thumbnails
+- **Vercel Blob** — article thumbnails and narrated MP3s
 - **Vercel AI Gateway** — text, image, and embedding model access with OIDC
   auth (no provider API keys); models are env-configurable `provider/model`
   slugs
@@ -46,10 +49,28 @@ npm run dev
 Set `FAKE_LLM=1` to run the whole pipeline with canned model outputs — the
 test suite (`npm test`) always runs this way and costs $0.
 
+To compare the recommended voices with a short real sample:
+
+```bash
+npm run audio:preview-voices
+```
+
+This writes ignored `alloy.mp3`, `nova.mp3`, and `onyx.mp3` files under
+`voice-previews/`. Set `SPEECH_VOICE` to the winner; `alloy` is the default.
+
+## Personal podcast feed
+
+After the first published article has finished generating audio, add
+`https://<your-domain>/podcast.xml` as a podcast by URL in Pocket Casts on
+iOS. The feed is intentionally public: anyone who knows the URL can fetch it.
+The audio worker creates one episode per published article version, makes up
+to three persisted attempts for transient failures, and then leaves a visible
+manual retry on the review desk. Existing articles are not backfilled.
+
 ## Deployment
 
 See [`docs/deployment.md`](docs/deployment.md). Short version: link the Vercel
 project, add the Neon integration and a public Blob store, set `CRON_SECRET` /
-`REVIEW_PASSWORD` / `TEXT_MODEL` / `IMAGE_MODEL` / `EMBEDDING_MODEL`, run the
-migration and embedding backfill, deploy, and point the `tick.yml` workflow at
-your deployment with repo secrets `CRON_SECRET` and `APP_URL`.
+`REVIEW_PASSWORD` / model variables, run the migration, deploy, and point the
+`tick.yml` workflow at your deployment with repo secrets `CRON_SECRET` and
+`APP_URL`.

@@ -1,4 +1,11 @@
-import { generateText, generateObject, generateImage, jsonSchema } from 'ai';
+import {
+  experimental_generateSpeech as generateSpeech,
+  generateText,
+  generateObject,
+  generateImage,
+  jsonSchema,
+} from 'ai';
+import { gateway } from '@ai-sdk/gateway';
 
 // All model access goes through the Vercel AI Gateway: model ids are plain
 // "provider/model" strings and auth is the project's OIDC token (auto-set on
@@ -90,4 +97,21 @@ export async function generateImageBytes(prompt: string): Promise<Buffer> {
     if (!image) throw imageApiErr;
     return Buffer.from(image.uint8Array);
   }
+}
+
+export async function generateSpeechBytes(text: string, voice: string): Promise<Buffer> {
+  if (isFake()) return Buffer.from(`FAKE MP3: ${voice}\n${text}`);
+  const model = process.env.SPEECH_MODEL ?? 'openai/tts-1';
+  const result = await generateSpeech({
+    model: gateway.speechModel(model),
+    text,
+    voice,
+    outputFormat: 'mp3',
+    // Retries are persisted and made visible by the audio worker. Disable the
+    // SDK's hidden retries so "three attempts" always means three billable
+    // generation calls at most.
+    maxRetries: 0,
+    abortSignal: AbortSignal.timeout(90_000),
+  });
+  return Buffer.from(result.audio.uint8Array);
 }

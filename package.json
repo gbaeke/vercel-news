@@ -14,12 +14,14 @@
     "test:watch": "vitest",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:test:up": "docker compose -f docker-compose.test.yml up -d && sleep 2 && DATABASE_URL=$TEST_DATABASE_URL tsx scripts/migrate.ts",
-    "db:backfill-embeddings": "tsx scripts/backfill-embeddings.ts"
+    "db:backfill-embeddings": "tsx scripts/backfill-embeddings.ts",
+    "audio:preview-voices": "tsx scripts/preview-voices.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ai-sdk/gateway": "^3.0.157",
     "@extractus/article-extractor": "^8.1.0",
     "@vercel/blob": "^2.6.1",
     "ai": "^6.0.235",
