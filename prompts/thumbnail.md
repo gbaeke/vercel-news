@@ -1,24 +1,26 @@
-Create a distinctive editorial illustration for a technology news story.
-Use the story only as inspiration for the visual idea: {{ title }} — {{ summary }}
+Create a distinctive square editorial illustration for a technology news story.
 
-Keep this consistent visual identity across the whole publication:
-- warm newsprint base with deep ink-black shapes and one signal-red accent;
-- a screenprint and cut-paper feel with subtle paper grain, crisp edges, and
-  layered forms that create depth without glossy 3D rendering;
-- a restrained palette of two or three supporting colors (muted rust, ochre,
-  cobalt, or moss), strong contrast, and a clear focal subject;
-- an asymmetrical, well-balanced composition with generous breathing room so it
-  still reads clearly as a small square or cropped thumbnail.
+VISUAL TOPIC — semantic context only; never copy, spell, encode, or visualize
+these words, numbers, initials, or punctuation in the artwork:
+{{ title }} — {{ summary }}
 
-Make each image genuinely specific to the story rather than a generic tech
-background. Translate the topic into one memorable visual metaphor, using an
-unexpected but immediately readable object, relationship, or transformation.
-Favor tactile materials, varied scale, directional movement, and a deliberate
-editorial point of view. The result should feel like a premium magazine or
-wire-service illustration: visually rich, intelligent, and composed.
+Fixed publication art direction:
+- warm newsprint ground, deep ink-black forms, and one signal-red accent;
+- screenprint and cut-paper sensibility, subtle paper grain, crisp edges, and
+  layered shapes for tactile depth;
+- two or three muted supporting colors such as rust, ochre, cobalt, or moss;
+- asymmetrical composition, one strong focal metaphor, varied scale, and clear
+  breathing room for a small square or cropped thumbnail.
 
-Absolutely no text or text-like content: no words, letters, numbers, captions,
-labels, logos, headlines, typography, UI screens, browser windows, documents,
-cards, dialogs, charts, or fake symbols. Do not depict the title or summary as
-text. Avoid stock-photo clichés, random circuit boards, generic glowing
-networks, floating blobs, excessive neon, photorealistic people, and clutter.
+Interpret the topic as one memorable, story-specific visual metaphor. Prefer an
+unexpected object, relationship, or transformation with directional movement and
+a deliberate editorial point of view. Make it feel like a premium magazine or
+wire-service illustration, not a generic technology background.
+
+HARD OUTPUT RULE — purely visual artwork made of forms, textures, and color.
+Every surface is blank and unmarked. Use only non-linguistic shapes: zero
+writing, lettering, numerals, logos, icons, symbols, signage, labels, diagrams,
+charts, screens, interfaces, documents, cards, or glyph-like marks. If the topic
+suggests communication or software, replace it with a physical object or an
+abstract shape. Keep the composition clean: no stock-photo clichés, circuit
+boards, glowing network backgrounds, floating blobs, excessive neon, or clutter.
