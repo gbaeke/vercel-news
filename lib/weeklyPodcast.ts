@@ -56,7 +56,8 @@ const WEEKLY_SCRIPT_SCHEMA = {
     summary: { type: 'string' },
     turns: {
       type: 'array',
-      minItems: 4,
+      minItems: 16,
+      maxItems: 48,
       items: {
         type: 'object',
         properties: {
@@ -266,6 +267,37 @@ function normalizeScript(candidate: WeeklyScriptResult): WeeklyScriptResult {
     throw new Error('Weekly script contains a turn that is too long for natural dialogue.');
   }
   return { title, summary, turns };
+}
+
+async function generateValidWeeklyScript(
+  generate: typeof structured,
+  system: string,
+  user: string,
+  stage: 'draft' | 'verification'
+): Promise<WeeklyScriptResult> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const retryHint = attempt === 1
+        ? ''
+        : '\n\nYour previous response was unusable. Return 24–40 non-empty turn objects, ' +
+          'alternate the host and analyst naturally, and use lowercase speaker values exactly.';
+      const candidate = await generate<WeeklyScriptResult>(
+        system,
+        `${user}${retryHint}`,
+        WEEKLY_SCRIPT_SCHEMA
+      );
+      return normalizeScript(candidate);
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `[weekly] ${stage} script attempt ${attempt} was invalid: ` +
+        `${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+  const detail = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`Weekly ${stage} script was invalid after two attempts: ${detail}`);
 }
 
 export function dialogueTurnCharacters(turn: WeeklyDialogueTurn): number {
@@ -501,7 +533,8 @@ export async function prepareWeeklyEpisode(
   try {
     const generate = deps.generateStructured ?? structured;
     const packet = sourcePacket(articles);
-    const draft = normalizeScript(await generate<WeeklyScriptResult>(
+    const draft = await generateValidWeeklyScript(
+      generate,
       loadPrompt('weekly-system'),
       loadPrompt('weekly-user', {
         week_key: window.weekKey,
@@ -509,17 +542,18 @@ export async function prepareWeeklyEpisode(
         period_end: window.periodEnd,
         articles: packet,
       }),
-      WEEKLY_SCRIPT_SCHEMA
-    ));
-    const verified = normalizeScript(await generate<WeeklyScriptResult>(
+      'draft'
+    );
+    const verified = await generateValidWeeklyScript(
+      generate,
       loadPrompt('weekly-verify-system'),
       loadPrompt('weekly-verify-user', {
         week_key: window.weekKey,
         articles: packet,
         draft: JSON.stringify(draft, null, 2),
       }),
-      WEEKLY_SCRIPT_SCHEMA
-    ));
+      'verification'
+    );
     await savePreparedEpisode(episode.id, articles, verified, sourceHash);
   } catch (error) {
     await markPrepareFailed(episode.id, error);

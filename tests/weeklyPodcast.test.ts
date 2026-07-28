@@ -146,4 +146,28 @@ describe('weekly podcast preparation', () => {
     const rows = await query(`SELECT id FROM weekly_episodes`);
     expect(rows).toHaveLength(0);
   });
+
+  it('retries a structurally valid but empty dialogue before failing the job', async () => {
+    await insertWeeklyArticle('2026-07-23T10:00:00.000Z');
+    const generate = vi.fn()
+      .mockResolvedValueOnce({
+        title: 'Weekly Review: Empty first try',
+        summary: 'The first model response omitted its dialogue.',
+        turns: [],
+      })
+      .mockResolvedValue({
+        title: 'Weekly Review: Recovered',
+        summary: 'The retry produced a usable dialogue.',
+        turns,
+      });
+
+    const prepared = await prepareWeeklyEpisode({
+      now: new Date('2026-07-28T12:00:00Z'),
+      generateStructured: generate as any,
+    });
+    expect(prepared.episode.status).toBe('scripted');
+    expect(prepared.episode.title).toBe('Weekly Review: Recovered');
+    expect(generate).toHaveBeenCalledTimes(3);
+    expect(generate.mock.calls[1][1]).toContain('previous response was unusable');
+  });
 });
