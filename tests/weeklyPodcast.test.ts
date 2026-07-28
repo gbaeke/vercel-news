@@ -5,10 +5,13 @@ import {
   claimWeeklyEpisode,
   completeWeeklyEpisode,
   dialogueTurnCharacters,
+  generateWeeklyScript,
   markWeeklySegmentReady,
   markWeeklySegmentStarted,
   prepareWeeklyEpisode,
+  prepareWeeklySources,
   previousWeeklyWindow,
+  saveWeeklyScript,
   splitDialogueTurns,
   weeklyWindowForKey,
 } from '../lib/weeklyPodcast';
@@ -136,6 +139,33 @@ describe('weekly podcast preparation', () => {
       week_key: '2026-W30',
       title: 'Weekly Review: A model release',
     });
+  });
+
+  it('can generate the script outside the web request and persist it afterward', async () => {
+    await insertWeeklyArticle('2026-07-23T10:00:00.000Z');
+    const generate = vi.fn(async () => ({
+      title: 'Weekly Review: Runner generated',
+      summary: 'The GitHub runner drafted this dialogue.',
+      turns,
+    }));
+
+    const preparation = await prepareWeeklySources({
+      now: new Date('2026-07-28T12:00:00Z'),
+    });
+    expect(preparation.window.weekKey).toBe('2026-W30');
+    expect(preparation.existingJob).toBeNull();
+    expect(await query(`SELECT id FROM weekly_episodes`)).toHaveLength(0);
+
+    const script = await generateWeeklyScript(preparation, generate as any);
+    expect(generate).toHaveBeenCalledTimes(2);
+    const prepared = await saveWeeklyScript({
+      weekKey: preparation.window.weekKey,
+      sourceHash: preparation.sourceHash,
+      script,
+    });
+    expect(prepared.episode.status).toBe('scripted');
+    expect(prepared.episode.title).toBe('Weekly Review: Runner generated');
+    expect(prepared.segments.length).toBeGreaterThan(0);
   });
 
   it('does not create an empty weekly episode', async () => {

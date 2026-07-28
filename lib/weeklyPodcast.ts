@@ -17,7 +17,7 @@ export const MAX_DIALOGUE_REQUEST_CHARACTERS = 1_800;
 const WEEKLY_PROMPT_VERSION = 'v1';
 const MAX_WEEKLY_ERROR_LENGTH = 1_000;
 
-interface WeeklyScriptResult {
+export interface WeeklyScriptResult {
   title: string;
   summary: string;
   turns: WeeklyDialogueTurn[];
@@ -41,6 +41,13 @@ export interface WeeklyProducerJob {
   episode: WeeklyEpisode;
   sources: WeeklyEpisodeSource[];
   segments: WeeklyEpisodeSegment[];
+}
+
+export interface WeeklyScriptPreparation {
+  window: WeeklyWindow;
+  sourceHash: string;
+  sourcePacket: string;
+  existingJob: WeeklyProducerJob | null;
 }
 
 export interface WeeklyPrepareDeps {
@@ -300,6 +307,33 @@ async function generateValidWeeklyScript(
   throw new Error(`Weekly ${stage} script was invalid after two attempts: ${detail}`);
 }
 
+export async function generateWeeklyScript(
+  preparation: Pick<WeeklyScriptPreparation, 'window' | 'sourcePacket'>,
+  generate: typeof structured = structured
+): Promise<WeeklyScriptResult> {
+  const draft = await generateValidWeeklyScript(
+    generate,
+    loadPrompt('weekly-system'),
+    loadPrompt('weekly-user', {
+      week_key: preparation.window.weekKey,
+      period_start: preparation.window.periodStart,
+      period_end: preparation.window.periodEnd,
+      articles: preparation.sourcePacket,
+    }),
+    'draft'
+  );
+  return generateValidWeeklyScript(
+    generate,
+    loadPrompt('weekly-verify-system'),
+    loadPrompt('weekly-verify-user', {
+      week_key: preparation.window.weekKey,
+      articles: preparation.sourcePacket,
+      draft: JSON.stringify(draft, null, 2),
+    }),
+    'verification'
+  );
+}
+
 export function dialogueTurnCharacters(turn: WeeklyDialogueTurn): number {
   return turn.text.length + (turn.delivery ? turn.delivery.length + 3 : 0);
 }
@@ -476,9 +510,9 @@ async function markPrepareFailed(episodeId: string, error: unknown): Promise<voi
   );
 }
 
-export async function prepareWeeklyEpisode(
-  deps: WeeklyPrepareDeps = {}
-): Promise<WeeklyProducerJob> {
+export async function prepareWeeklySources(
+  deps: Pick<WeeklyPrepareDeps, 'now' | 'weekKey'> = {}
+): Promise<WeeklyScriptPreparation> {
   const window = deps.weekKey
     ? weeklyWindowForKey(deps.weekKey)
     : previousWeeklyWindow(deps.now);
@@ -488,13 +522,39 @@ export async function prepareWeeklyEpisode(
   }
   const sourceHash = weeklySourceHash(articles, window);
   const existing = await getEpisodeByWeek(window.weekKey);
+  const canReuse = existing?.status === 'ready'
+    || (existing?.source_hash === sourceHash && existing.script && existing.script_hash);
+  return {
+    window,
+    sourceHash,
+    sourcePacket: sourcePacket(articles),
+    existingJob: canReuse ? await getWeeklyProducerJob(existing.id) : null,
+  };
+}
+
+export async function saveWeeklyScript(input: {
+  weekKey: string;
+  sourceHash: string;
+  script: WeeklyScriptResult;
+}): Promise<WeeklyProducerJob> {
+  const window = weeklyWindowForKey(input.weekKey);
+  const articles = await sourceArticlesForWindow(window);
+  if (articles.length === 0) {
+    throw new Error(`No published articles were found for ${window.weekKey}.`);
+  }
+  const currentSourceHash = weeklySourceHash(articles, window);
+  if (currentSourceHash !== input.sourceHash) {
+    throw new Error('Weekly sources changed while the script was being generated; retry the job.');
+  }
+  const existing = await getEpisodeByWeek(window.weekKey);
   if (existing?.status === 'ready') {
     return (await getWeeklyProducerJob(existing.id))!;
   }
-  if (existing?.source_hash === sourceHash && existing.script && existing.script_hash) {
+  if (existing?.source_hash === currentSourceHash && existing.script && existing.script_hash) {
     return (await getWeeklyProducerJob(existing.id))!;
   }
 
+  const script = normalizeScript(input.script);
   const [episode] = await query<WeeklyEpisode>(
     `INSERT INTO weekly_episodes (
        week_key, period_start, period_end, status, source_hash, provider, model, claimed_at
@@ -524,42 +584,35 @@ export async function prepareWeeklyEpisode(
       window.weekKey,
       window.periodStart,
       window.periodEnd,
-      sourceHash,
+      currentSourceHash,
       WEEKLY_PROVIDER,
       process.env.WEEKLY_SPEECH_MODEL ?? DEFAULT_WEEKLY_SPEECH_MODEL,
     ]
   );
 
   try {
-    const generate = deps.generateStructured ?? structured;
-    const packet = sourcePacket(articles);
-    const draft = await generateValidWeeklyScript(
-      generate,
-      loadPrompt('weekly-system'),
-      loadPrompt('weekly-user', {
-        week_key: window.weekKey,
-        period_start: window.periodStart,
-        period_end: window.periodEnd,
-        articles: packet,
-      }),
-      'draft'
-    );
-    const verified = await generateValidWeeklyScript(
-      generate,
-      loadPrompt('weekly-verify-system'),
-      loadPrompt('weekly-verify-user', {
-        week_key: window.weekKey,
-        articles: packet,
-        draft: JSON.stringify(draft, null, 2),
-      }),
-      'verification'
-    );
-    await savePreparedEpisode(episode.id, articles, verified, sourceHash);
+    await savePreparedEpisode(episode.id, articles, script, currentSourceHash);
   } catch (error) {
     await markPrepareFailed(episode.id, error);
     throw error;
   }
   return (await getWeeklyProducerJob(episode.id))!;
+}
+
+export async function prepareWeeklyEpisode(
+  deps: WeeklyPrepareDeps = {}
+): Promise<WeeklyProducerJob> {
+  const preparation = await prepareWeeklySources(deps);
+  if (preparation.existingJob) return preparation.existingJob;
+  const script = await generateWeeklyScript(
+    preparation,
+    deps.generateStructured ?? structured
+  );
+  return saveWeeklyScript({
+    weekKey: preparation.window.weekKey,
+    sourceHash: preparation.sourceHash,
+    script,
+  });
 }
 
 export async function claimWeeklyEpisode(episodeId: string): Promise<WeeklyProducerJob | null> {

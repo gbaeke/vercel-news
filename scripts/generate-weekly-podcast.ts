@@ -10,7 +10,11 @@ import type {
   WeeklyDialogueTurn,
   WeeklyEpisodeSegment,
 } from '../lib/types';
-import type { WeeklyProducerJob } from '../lib/weeklyPodcast';
+import {
+  generateWeeklyScript,
+  type WeeklyProducerJob,
+  type WeeklyScriptPreparation,
+} from '../lib/weeklyPodcast';
 
 dotenv.config({ path: '.env.local' });
 
@@ -221,10 +225,30 @@ async function main(): Promise<void> {
   let episodeId: string | undefined;
   const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-wire-weekly-'));
   try {
-    const job = await weeklyApi<WeeklyProducerJob>(config, {
-      action: 'prepare',
+    const source = await weeklyApi<{
+      preparation: WeeklyScriptPreparation | null;
+      job: WeeklyProducerJob | null;
+    }>(config, {
+      action: 'source',
       weekKey: process.env.WEEKLY_WEEK_KEY?.trim() || undefined,
     });
+    let job = source.job;
+    if (!job) {
+      if (!source.preparation) {
+        throw new Error('Weekly API returned neither a reusable job nor source material.');
+      }
+      requiredEnv('AI_GATEWAY_API_KEY');
+      console.log(
+        `[weekly] drafting and verifying the ${source.preparation.window.weekKey} script in GitHub Actions`
+      );
+      const script = await generateWeeklyScript(source.preparation);
+      job = await weeklyApi<WeeklyProducerJob>(config, {
+        action: 'script_ready',
+        weekKey: source.preparation.window.weekKey,
+        sourceHash: source.preparation.sourceHash,
+        script,
+      });
+    }
     episodeId = job.episode.id;
     if (job.episode.status === 'ready') {
       console.log(`[weekly] ${job.episode.week_key} is already ready; nothing to do`);

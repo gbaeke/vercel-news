@@ -11,8 +11,10 @@ import {
   markWeeklySegmentFailed,
   markWeeklySegmentReady,
   markWeeklySegmentStarted,
-  prepareWeeklyEpisode,
+  prepareWeeklySources,
+  saveWeeklyScript,
 } from '../../../lib/weeklyPodcast';
+import type { WeeklyDialogueTurn } from '../../../lib/types';
 
 type JsonObject = Record<string, unknown>;
 
@@ -52,6 +54,38 @@ function publicHttpUrl(value: unknown, name: string): string {
   return url.toString();
 }
 
+function weeklyScript(value: unknown): {
+  title: string;
+  summary: string;
+  turns: WeeklyDialogueTurn[];
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('script must be a JSON object');
+  }
+  const object = value as JsonObject;
+  if (!Array.isArray(object.turns)) throw new Error('script.turns must be an array');
+  const turns: WeeklyDialogueTurn[] = object.turns.map((value, index) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`script.turns[${index}] must be a JSON object`);
+    }
+    const turn = value as JsonObject;
+    const speaker = nonEmptyString(turn.speaker, `script.turns[${index}].speaker`);
+    if (speaker !== 'host' && speaker !== 'analyst') {
+      throw new Error(`script.turns[${index}].speaker must be host or analyst`);
+    }
+    return {
+      speaker: speaker as WeeklyDialogueTurn['speaker'],
+      text: nonEmptyString(turn.text, `script.turns[${index}].text`),
+      delivery: nonEmptyString(turn.delivery, `script.turns[${index}].delivery`),
+    };
+  });
+  return {
+    title: nonEmptyString(object.title, 'script.title'),
+    summary: nonEmptyString(object.summary, 'script.summary'),
+    turns,
+  };
+}
+
 async function requestBody(req: NextRequest): Promise<JsonObject> {
   const value = await req.json();
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -77,11 +111,29 @@ export async function POST(req: NextRequest) {
 
   try {
     const action = nonEmptyString(body.action, 'action');
-    if (action === 'prepare') {
+    if (action === 'source') {
       const weekKey = body.weekKey === undefined || body.weekKey === ''
         ? undefined
         : nonEmptyString(body.weekKey, 'weekKey');
-      const prepared = await prepareWeeklyEpisode({ weekKey });
+      const preparation = await prepareWeeklySources({ weekKey });
+      if (!preparation.existingJob) {
+        return NextResponse.json({ preparation, job: null });
+      }
+      if (preparation.existingJob.episode.status === 'ready') {
+        return NextResponse.json({ preparation: null, job: preparation.existingJob });
+      }
+      const claimed = await claimWeeklyEpisode(preparation.existingJob.episode.id);
+      if (!claimed) {
+        return NextResponse.json({ error: 'weekly episode could not be claimed' }, { status: 409 });
+      }
+      return NextResponse.json({ preparation: null, job: claimed });
+    }
+    if (action === 'script_ready') {
+      const prepared = await saveWeeklyScript({
+        weekKey: nonEmptyString(body.weekKey, 'weekKey'),
+        sourceHash: nonEmptyString(body.sourceHash, 'sourceHash'),
+        script: weeklyScript(body.script),
+      });
       if (prepared.episode.status === 'ready') {
         return NextResponse.json(prepared);
       }
