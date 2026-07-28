@@ -52,3 +52,75 @@ export interface ArticleAudio {
   created_at: string;
   updated_at: string;
 }
+
+export type WeeklyEpisodeStatus =
+  | 'preparing'
+  | 'scripted'
+  | 'generating'
+  | 'ready'
+  | 'failed';
+
+export type WeeklySegmentStatus = 'pending' | 'processing' | 'ready' | 'failed';
+export type WeeklySpeaker = 'host' | 'analyst';
+
+export interface WeeklyDialogueTurn {
+  speaker: WeeklySpeaker;
+  text: string;
+  delivery: string;
+}
+
+export interface WeeklyEpisode {
+  id: string;
+  week_key: string;
+  period_start: string;
+  period_end: string;
+  status: WeeklyEpisodeStatus;
+  title: string | null;
+  summary: string | null;
+  show_notes: string | null;
+  script: { turns: WeeklyDialogueTurn[] } | null;
+  script_version: number;
+  source_hash: string;
+  script_hash: string | null;
+  provider: string;
+  model: string;
+  host_voice: string | null;
+  analyst_voice: string | null;
+  blob_url: string | null;
+  byte_length: string | null;
+  media_type: string | null;
+  duration_seconds: string | null;
+  attempt_count: number;
+  claimed_at: string | null;
+  last_error: string | null;
+  generated_at: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyEpisodeSource {
+  episode_id: string;
+  position: number;
+  article_id: number | null;
+  article_version: number;
+  title: string;
+  url: string;
+}
+
+export interface WeeklyEpisodeSegment {
+  episode_id: string;
+  position: number;
+  turns: WeeklyDialogueTurn[];
+  source_hash: string;
+  status: WeeklySegmentStatus;
+  blob_url: string | null;
+  byte_length: string | null;
+  media_type: string | null;
+  duration_seconds: string | null;
+  attempt_count: number;
+  last_error: string | null;
+  generated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}

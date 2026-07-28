@@ -21,8 +21,14 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
   every draft with its pipeline position; approve publishes immediately,
   rewrite/decline/retry are one click each.
 - **Published articles become podcast episodes.** A separate durable audio
-  queue generates an MP3 with `openai/tts-1`, stores it in Vercel Blob, adds a
-  player to the article, and exposes ready episodes at `/podcast.xml`.
+  queue generates a short-form MP3 with `openai/tts-1`, stores it in Vercel
+  Blob, adds a player to the article, and exposes ready episodes at
+  `/podcast.xml`.
+- **A weekly two-speaker review joins the same feed.** Every Monday, a separate
+  GitHub Actions producer asks the app to prepare and verify a dialogue from
+  the previous Brussels calendar week, renders resumable sections with
+  ElevenLabs, assembles a normalized MP3, and adds it to `/podcast.xml`. Weekly
+  reviews are feed-only; they do not get public episode pages.
 
 ## Stack
 
@@ -66,6 +72,32 @@ iOS. The feed is intentionally public: anyone who knows the URL can fetch it.
 The audio worker creates one episode per published article version, makes up
 to three persisted attempts for transient failures, and then leaves a visible
 manual retry on the review desk. Existing articles are not backfilled.
+
+Short dispatches and weekly reviews share this feed and are ordered by their
+publication time. The weekly producer is idempotent by ISO week: a retry reuses
+the prepared script and any completed audio sections instead of creating a
+duplicate episode.
+
+### Weekly producer configuration
+
+The app needs the normal `APP_URL`, `CRON_SECRET`, `DATABASE_URL`, text-model,
+and Blob settings. The GitHub repository also needs these Actions secrets:
+
+- `APP_URL`
+- `CRON_SECRET`
+- `BLOB_READ_WRITE_TOKEN`
+- `ELEVENLABS_API_KEY`
+
+Choose two ElevenLabs voices and add their IDs as GitHub Actions variables
+`WEEKLY_HOST_VOICE_ID` and `WEEKLY_ANALYST_VOICE_ID`. Use the same names in
+`.env.local` to run `npm run podcast:weekly` manually. The scheduled workflow
+runs Mondays at 08:17 in `Europe/Brussels`; `workflow_dispatch` remains
+available for testing or retrying a week and accepts an optional ISO week such
+as `2026-W30`.
+
+The weekly schema is durable production state. Apply the idempotent migration
+before deploying this feature; never make the scheduled audio workflow run
+schema migrations.
 
 ## Deployment
 

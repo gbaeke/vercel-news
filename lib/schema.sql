@@ -83,6 +83,118 @@ CREATE INDEX IF NOT EXISTS article_audio_processing_idx
 ON article_audio (claimed_at)
 WHERE status = 'processing';
 
+-- A long-form weekly review is separate from article narration: it combines
+-- several already-published articles, has a two-speaker script, and is rendered
+-- in resumable sections by the GitHub-hosted audio producer. Ready episodes are
+-- merged into the same public podcast feed as short-form article dispatches.
+CREATE TABLE IF NOT EXISTS weekly_episodes (
+  id               BIGSERIAL PRIMARY KEY,
+  week_key         TEXT NOT NULL UNIQUE,
+  period_start     TIMESTAMPTZ NOT NULL,
+  period_end       TIMESTAMPTZ NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'preparing'
+                   CHECK (status IN ('preparing', 'scripted', 'generating', 'ready', 'failed')),
+  title            TEXT,
+  summary          TEXT,
+  show_notes       TEXT,
+  script           JSONB,
+  script_version   INTEGER NOT NULL DEFAULT 1 CHECK (script_version > 0),
+  source_hash      TEXT NOT NULL,
+  script_hash      TEXT,
+  provider         TEXT NOT NULL DEFAULT 'elevenlabs',
+  model            TEXT NOT NULL DEFAULT 'eleven_v3',
+  host_voice       TEXT,
+  analyst_voice    TEXT,
+  blob_url         TEXT,
+  byte_length      BIGINT CHECK (byte_length IS NULL OR byte_length > 0),
+  media_type       TEXT,
+  duration_seconds NUMERIC CHECK (duration_seconds IS NULL OR duration_seconds > 0),
+  attempt_count    INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  claimed_at       TIMESTAMPTZ,
+  last_error       TEXT,
+  generated_at     TIMESTAMPTZ,
+  published_at     TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CHECK (period_end > period_start),
+  CHECK (
+    status <> 'ready'
+    OR (
+      title IS NOT NULL
+      AND summary IS NOT NULL
+      AND script IS NOT NULL
+      AND script_hash IS NOT NULL
+      AND blob_url IS NOT NULL
+      AND byte_length IS NOT NULL
+      AND media_type IS NOT NULL
+      AND duration_seconds IS NOT NULL
+      AND generated_at IS NOT NULL
+      AND published_at IS NOT NULL
+    )
+  )
+);
+
+CREATE INDEX IF NOT EXISTS weekly_episodes_feed_idx
+ON weekly_episodes (published_at DESC)
+WHERE status = 'ready';
+
+CREATE INDEX IF NOT EXISTS weekly_episodes_work_idx
+ON weekly_episodes (status, updated_at)
+WHERE status IN ('preparing', 'scripted', 'generating', 'failed');
+
+-- Keep a historical source snapshot so show notes survive article corrections,
+-- unpublishing, or deletion. The nullable article reference is useful while the
+-- source still exists but is not the only copy of its public metadata.
+CREATE TABLE IF NOT EXISTS weekly_episode_sources (
+  episode_id      BIGINT NOT NULL REFERENCES weekly_episodes(id) ON DELETE CASCADE,
+  position        INTEGER NOT NULL CHECK (position >= 0),
+  article_id      INTEGER REFERENCES articles(id) ON DELETE SET NULL,
+  article_version INTEGER NOT NULL CHECK (article_version > 0),
+  title           TEXT NOT NULL,
+  url             TEXT NOT NULL,
+  PRIMARY KEY (episode_id, position)
+);
+
+CREATE INDEX IF NOT EXISTS weekly_episode_sources_article_idx
+ON weekly_episode_sources (article_id)
+WHERE article_id IS NOT NULL;
+
+-- Dialogue is rendered in bounded sections because the provider recommends
+-- short requests. A completed segment remains reusable after a later segment
+-- fails, making the external audio job safe and economical to retry.
+CREATE TABLE IF NOT EXISTS weekly_episode_segments (
+  episode_id      BIGINT NOT NULL REFERENCES weekly_episodes(id) ON DELETE CASCADE,
+  position        INTEGER NOT NULL CHECK (position >= 0),
+  turns           JSONB NOT NULL,
+  source_hash     TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'processing', 'ready', 'failed')),
+  blob_url        TEXT,
+  byte_length     BIGINT CHECK (byte_length IS NULL OR byte_length > 0),
+  media_type      TEXT,
+  duration_seconds NUMERIC CHECK (duration_seconds IS NULL OR duration_seconds > 0),
+  attempt_count   INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+  last_error      TEXT,
+  generated_at    TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (episode_id, position),
+  CHECK (
+    status <> 'ready'
+    OR (
+      blob_url IS NOT NULL
+      AND byte_length IS NOT NULL
+      AND media_type IS NOT NULL
+      AND duration_seconds IS NOT NULL
+      AND generated_at IS NOT NULL
+    )
+  )
+);
+
+CREATE INDEX IF NOT EXISTS weekly_episode_segments_work_idx
+ON weekly_episode_segments (episode_id, position)
+WHERE status <> 'ready';
+
 -- Trigger URLs the operator deleted for good. The unique constraint on
 -- articles.trigger_url stops re-ingest only while the row exists, so a delete
 -- leaves a tombstone here and ingest skips anything listed.

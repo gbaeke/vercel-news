@@ -16,4 +16,16 @@ describe('loadPrompt', () => {
     expect(text).toContain('"Monday morning"');
     expect(text).not.toContain('{{ persona_style }}');
   });
+
+  it('builds a weekly dialogue prompt without unresolved source placeholders', () => {
+    const text = loadPrompt('weekly-user', {
+      week_key: '2026-W30',
+      period_start: '2026-07-19T22:00:00.000Z',
+      period_end: '2026-07-26T22:00:00.000Z',
+      articles: 'ARTICLE 1\nTitle: A model release',
+    });
+    expect(text).toContain('2026-W30');
+    expect(text).toContain('ARTICLE 1');
+    expect(text).not.toContain('{{');
+  });
 });

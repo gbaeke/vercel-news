@@ -1,0 +1,55 @@
+name: weekly podcast
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+      timezone: 'Europe/Brussels'
+  workflow_dispatch:
+    inputs:
+      week:
+        description: 'Optional ISO week to produce, for example 2026-W30'
+        required: false
+        type: string
+
+concurrency:
+  group: weekly-podcast
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure audio tools are available
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+
+      - name: Produce weekly episode
+        run: npm run podcast:weekly
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          WEEKLY_HOST_VOICE_ID: ${{ vars.WEEKLY_HOST_VOICE_ID }}
+          WEEKLY_ANALYST_VOICE_ID: ${{ vars.WEEKLY_ANALYST_VOICE_ID }}
+          WEEKLY_SPEECH_MODEL: eleven_v3
+          WEEKLY_WEEK_KEY: ${{ inputs.week }}

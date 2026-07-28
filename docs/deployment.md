@@ -4,8 +4,9 @@
 2. Run the migration once against production `DATABASE_URL`:
    `DATABASE_URL=<prod-connection-string> npx tsx scripts/migrate.ts`
    This enables pgvector and creates the article embedding columns/index plus
-   the durable `article_audio` queue. This is a production schema migration;
-   do it before deploying code that expects the new table.
+   the durable `article_audio` queue and weekly podcast tables. This is a
+   production schema migration; do it before deploying code that expects the
+   new tables.
 3. Backfill semantic-search vectors for articles that are already published:
    `vercel env pull .env.local --environment=production && npm run db:backfill-embeddings`
 4. Add the Vercel Blob integration to the project; it injects `BLOB_READ_WRITE_TOKEN` automatically.
@@ -15,9 +16,17 @@
    `AUDIO_JOBS_PER_TICK=1`. AI Gateway authentication is provided by Vercel
    OIDC; leave `FAKE_LLM` unset (defaults to real calls).
 6. Deploy. Confirm `vercel.json`'s daily cron shows up under the project's Cron Jobs tab.
-7. In the GitHub repo, add secrets `CRON_SECRET` (same value) and `APP_URL` (deployed URL). Confirm `.github/workflows/tick.yml` runs on schedule or via manual `workflow_dispatch`.
-8. Visit `/review/login`, log in with `REVIEW_PASSWORD`, click "Run tick now" to force the first ingest+processing cycle without waiting for the scheduler.
-9. Verify definition of done: a real feed item reaches `/review` as an
+7. In the GitHub repo, add secrets `CRON_SECRET` (same value) and `APP_URL`
+   (deployed URL). Confirm `.github/workflows/tick.yml` runs on schedule or via
+   manual `workflow_dispatch`.
+8. For the weekly two-speaker review, also add GitHub Actions secrets
+   `BLOB_READ_WRITE_TOKEN` and `ELEVENLABS_API_KEY`, then add repository
+   variables `WEEKLY_HOST_VOICE_ID` and `WEEKLY_ANALYST_VOICE_ID`.
+   `.github/workflows/weekly-podcast.yml` runs on Monday at 08:17
+   `Europe/Brussels` and can also be dispatched manually. The Action never runs
+   migrations and does not commit generated media.
+9. Visit `/review/login`, log in with `REVIEW_PASSWORD`, click "Run tick now" to force the first ingest+processing cycle without waiting for the scheduler.
+10. Verify definition of done: a real feed item reaches `/review` as an
    `in_review` draft with a thumbnail within ~30 minutes of first deploy. One
    Approve click makes it live and queues narration; a later tick makes the
    article player and `/podcast.xml` episode available. The migration does not
