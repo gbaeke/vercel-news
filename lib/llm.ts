@@ -85,7 +85,7 @@ export async function structured<T>(system: string, user: string, schema: Record
 
 export async function generateImageBytes(prompt: string): Promise<Buffer> {
   if (isFake()) throw new Error('FAKE_LLM: image generation skipped');
-  const model = process.env.IMAGE_MODEL ?? 'google/imagen-4.0-fast-generate-001';
+  const model = process.env.IMAGE_MODEL ?? 'recraft/recraft-v4.1';
   try {
     const { image } = await generateImage({ model, prompt });
     return Buffer.from(image.uint8Array);
