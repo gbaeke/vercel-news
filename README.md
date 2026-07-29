@@ -20,6 +20,9 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
 - **A human gates publication.** The password-protected `/review` desk shows
   every draft with its pipeline position; approve publishes immediately,
   rewrite/decline/retry are one click each.
+- **Declined drafts are cleaned up weekly.** A GitHub Actions workflow calls
+  the app to permanently remove declined articles and any thumbnails that are
+  no longer referenced.
 - **Published articles become podcast episodes.** A separate durable audio
   queue generates a short-form MP3 with `openai/tts-1`, stores it in Vercel
   Blob, adds a player to the article, and exposes ready episodes at
@@ -94,6 +97,10 @@ Choose two ElevenLabs voices and add their IDs as GitHub Actions variables
 runs Mondays at 08:17 in `Europe/Brussels`; `workflow_dispatch` remains
 available for testing or retrying a week and accepts an optional ISO week such
 as `2026-W30`.
+
+The `cleanup-declined.yml` workflow uses the existing `APP_URL` and
+`CRON_SECRET` secrets. It runs each Monday at 06:30 UTC and can also be run
+manually from the Actions tab.
 
 The weekly schema is durable production state. Apply the idempotent migration
 before deploying this feature; never make the scheduled audio workflow run

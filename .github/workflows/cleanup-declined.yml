@@ -1,0 +1,21 @@
+name: cleanup declined articles
+
+on:
+  schedule:
+    # Mondays at 06:30 UTC.
+    - cron: '30 6 * * 1'
+  workflow_dispatch: {}
+
+concurrency:
+  group: cleanup-declined-articles
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete declined articles and orphaned thumbnails
+        run: |
+          curl --fail-with-body --retry 3 --retry-all-errors -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cleanup-declined"
