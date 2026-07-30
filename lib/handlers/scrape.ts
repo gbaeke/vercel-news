@@ -1,6 +1,6 @@
 import { extractFromHtml } from '@extractus/article-extractor';
 import { query } from '../db';
-import { htmlToText } from '../text';
+import { htmlToText, htmlToTextWithLinks } from '../text';
 import {
   assessSource,
   MAX_SOURCE_LENGTH,
@@ -72,11 +72,11 @@ export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Pr
   for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt++) {
     try {
       const extracted = await extract(article.trigger_url);
-      const asText = extracted ? htmlToText(extracted) : '';
-      sourceCapped ||= asText.length > MAX_SOURCE_LENGTH;
-      const assessment = assessSource(asText, MIN_PAGE_SOURCE_LENGTH);
+      const plainText = extracted ? htmlToText(extracted) : '';
+      sourceCapped ||= plainText.length > MAX_SOURCE_LENGTH;
+      const assessment = assessSource(plainText, MIN_PAGE_SOURCE_LENGTH);
       if (assessment.ok) {
-        content = asText;
+        content = htmlToTextWithLinks(extracted!, article.trigger_url);
         method = 'page';
         break;
       }
@@ -92,11 +92,11 @@ export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Pr
 
   const rssContent = article.source_rss_content ?? article.trigger_content;
   if (!content && rssContent) {
-    const fallback = htmlToText(rssContent);
-    sourceCapped ||= fallback.length > MAX_SOURCE_LENGTH;
-    const assessment = assessSource(fallback, MIN_RSS_SOURCE_LENGTH);
+    const plainFallback = htmlToText(rssContent);
+    sourceCapped ||= plainFallback.length > MAX_SOURCE_LENGTH;
+    const assessment = assessSource(plainFallback, MIN_RSS_SOURCE_LENGTH);
     if (assessment.ok) {
-      content = fallback;
+      content = htmlToTextWithLinks(rssContent, article.trigger_url);
       method = 'rss-fallback';
     } else {
       fallbackReason = [fallbackReason, `RSS fallback ${assessment.reason ?? 'was unusable'}`]

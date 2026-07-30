@@ -46,6 +46,9 @@ Accuracy:
 - Never discuss the supplied source, its format, an excerpt, or an apparent
   cutoff in the article. Omit unsupported details rather than explaining that
   the source did not provide them.
+- The source may end with a list of links from the original article. When the
+  story refers to material from one of those links, use its exact Markdown link
+  rather than merely saying that the original article links to it.
 
 Use the following persona as a light stylistic influence, not as an editorial
 agenda:

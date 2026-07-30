@@ -10,11 +10,11 @@ import { complete, structured } from '../../lib/llm';
 import { writeHandler } from '../../lib/handlers/write';
 import { updateTagPersona } from '../../lib/tags';
 
-async function insertArticle() {
+async function insertArticle(triggerContent = 'source text') {
   const rows = await query<{ id: number }>(
     `INSERT INTO articles (source_feed, trigger_url, trigger_content, tags, status)
-     VALUES ('openai', 'https://example.com/z', 'source text', $1, 'tagged') RETURNING *`,
-    [JSON.stringify({ primary: 'models', secondary: [] })]
+     VALUES ('openai', 'https://example.com/z', $1, $2, 'tagged') RETURNING *`,
+    [triggerContent, JSON.stringify({ primary: 'models', secondary: [] })]
   );
   return rows[0];
 }
@@ -59,5 +59,27 @@ describe('writeHandler', () => {
     await updateTagPersona('models', 'research-explainer');
     const article = await insertArticle();
     await expect(writeHandler(article as any)).rejects.toThrow('refers to the supplied source');
+  });
+
+  it('adds source-document links that the draft did not cite', async () => {
+    (complete as any)
+      .mockResolvedValueOnce('draft body')
+      .mockResolvedValueOnce('humanized body');
+    (structured as any).mockResolvedValue({
+      title: 'A New Model Arrives',
+      content_md: 'humanized body',
+      summary: 'A short teaser.',
+    });
+
+    await updateTagPersona('models', 'research-explainer');
+    const article = await insertArticle(
+      'source text\n\nLinks from the original article:\n- [Technical details](https://example.com/details)'
+    );
+    await writeHandler(article as any);
+
+    const [row] = await query<any>(`SELECT content_md, content_html FROM articles WHERE id = $1`, [article.id]);
+    expect(row.content_md).toContain('### Links from the original article');
+    expect(row.content_md).toContain('[Technical details](https://example.com/details)');
+    expect(row.content_html).toContain('href="https://example.com/details"');
   });
 });

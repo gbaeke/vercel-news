@@ -107,6 +107,19 @@ describe('scrapeHandler', () => {
     expect(row.trigger_content).not.toContain('evil()');
   });
 
+  it('preserves safe article links for the eventual news item', async () => {
+    const article = await insertArticle();
+    const html = `<article><p>${'Reporting with context. '.repeat(30)}<a href="/research">Read the research</a><a href="javascript:alert(1)">Bad link</a></p></article>`;
+    await scrapeHandler(article as any, { extract: async () => html });
+
+    const [row] = await query<{ trigger_content: string }>(
+      `SELECT trigger_content FROM articles WHERE id = $1`, [article.id]
+    );
+    expect(row.trigger_content).toContain('Links from the original article:');
+    expect(row.trigger_content).toContain('[Read the research](https://example.com/research)');
+    expect(row.trigger_content).not.toContain('javascript:');
+  });
+
   it('rejects an over-limit source and records that the safety limit fired', async () => {
     const article = await insertArticle();
     const to = await scrapeHandler(article as any, { extract: async () => 'C'.repeat(100_001), sleep: noWait });

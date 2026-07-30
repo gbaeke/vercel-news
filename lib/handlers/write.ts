@@ -6,6 +6,7 @@ import { getTagPersonaId } from '../tags';
 import { generateSlug } from '../slug';
 import { renderMarkdown } from '../markdown';
 import { containsSourceProcessLanguage, sourceForPrompt } from '../sourceQuality';
+import { appendSourceLinks } from '../text';
 import type { Article } from '../types';
 
 interface FinishResult {
@@ -62,7 +63,8 @@ export async function writeHandler(article: Article): Promise<string> {
     throw new Error('draft refers to the supplied source instead of reporting the story');
   }
 
-  const contentHtml = renderMarkdown(finished.content_md);
+  const contentMd = appendSourceLinks(finished.content_md, article.trigger_content ?? '');
+  const contentHtml = renderMarkdown(contentMd);
   const slug = await generateSlug(finished.title, slugExists);
 
   await query(
@@ -70,7 +72,7 @@ export async function writeHandler(article: Article): Promise<string> {
        persona = $1, title = $2, content_md = $3, content_html = $4,
        summary = $5, slug = $6, status = 'written', claimed_at = NULL, updated_at = now()
      WHERE id = $7`,
-    [persona.name, finished.title, finished.content_md, contentHtml, finished.summary, slug, article.id]
+    [persona.name, finished.title, contentMd, contentHtml, finished.summary, slug, article.id]
   );
   return 'written';
 }
