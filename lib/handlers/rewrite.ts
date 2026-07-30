@@ -2,7 +2,6 @@ import { query } from '../db';
 import { complete, structured } from '../llm';
 import { loadPrompt } from '../prompts';
 import { renderMarkdown } from '../markdown';
-import { appendSourceLinks } from '../text';
 import type { Article } from '../types';
 
 interface FinishResult {
@@ -34,15 +33,14 @@ export async function rewriteHandler(article: Article): Promise<string> {
     FINISH_SCHEMA
   );
 
-  const contentMd = appendSourceLinks(finished.content_md, article.trigger_content ?? '');
-  const contentHtml = renderMarkdown(contentMd);
+  const contentHtml = renderMarkdown(finished.content_md);
 
   await query(
     `UPDATE articles SET
        title = $1, content_md = $2, content_html = $3, summary = $4,
        version = version + 1, status = 'in_review', claimed_at = NULL, updated_at = now()
      WHERE id = $5`,
-    [finished.title, contentMd, contentHtml, finished.summary, article.id]
+    [finished.title, finished.content_md, contentHtml, finished.summary, article.id]
   );
   return 'in_review';
 }

@@ -6,6 +6,7 @@ import {
   getReadyArticleAudio,
 } from '../../../lib/publicQueries';
 import { formatDate } from '../../../lib/format';
+import { renderMarkdown } from '../../../lib/markdown';
 import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from '../../wire';
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -31,6 +32,15 @@ function sourceHost(url: string): string {
   } catch {
     return 'source';
   }
+}
+
+// The previous link-retention implementation appended every source-page link.
+// Hide that legacy appendix while retaining links the article uses inline.
+function visibleArticleHtml(markdown: string | null): string {
+  const withoutLegacyAppendix = (markdown ?? '')
+    .replace(/\n{2}### Links from the original article\n[\s\S]*$/, '')
+    .trim();
+  return renderMarkdown(withoutLegacyAppendix);
 }
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
@@ -109,7 +119,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         )}
 
         <div className="wire-body">
-          <div className="wire-body-inner" dangerouslySetInnerHTML={{ __html: article.content_html ?? '' }} />
+          <div className="wire-body-inner" dangerouslySetInnerHTML={{ __html: visibleArticleHtml(article.content_md) }} />
           <p className="mono wire-source">
             <a href={article.trigger_url} target="_blank" rel="noopener noreferrer" className="wire-readlink">
               Read the original at {sourceHost(article.trigger_url)} →

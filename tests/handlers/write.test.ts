@@ -61,7 +61,7 @@ describe('writeHandler', () => {
     await expect(writeHandler(article as any)).rejects.toThrow('refers to the supplied source');
   });
 
-  it('adds source-document links that the draft did not cite', async () => {
+  it('does not append every source-document link to the finished story', async () => {
     (complete as any)
       .mockResolvedValueOnce('draft body')
       .mockResolvedValueOnce('humanized body');
@@ -77,9 +77,7 @@ describe('writeHandler', () => {
     );
     await writeHandler(article as any);
 
-    const [row] = await query<any>(`SELECT content_md, content_html FROM articles WHERE id = $1`, [article.id]);
-    expect(row.content_md).toContain('### Links from the original article');
-    expect(row.content_md).toContain('[Technical details](https://example.com/details)');
-    expect(row.content_html).toContain('href="https://example.com/details"');
+    const [row] = await query<any>(`SELECT content_md FROM articles WHERE id = $1`, [article.id]);
+    expect(row.content_md).toBe('humanized body');
   });
 });
