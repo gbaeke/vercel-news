@@ -1,6 +1,7 @@
 import { query } from '../db';
 import { structured } from '../llm';
 import { loadPrompt } from '../prompts';
+import { sourceForPrompt } from '../sourceQuality';
 import { getTags } from '../tags';
 import type { Article } from '../types';
 
@@ -30,7 +31,7 @@ export async function tagHandler(article: Article): Promise<string> {
   }
 
   const system = loadPrompt('tag-system', { tags: tags.join(', ') });
-  const user = loadPrompt('tag-user', { content: article.trigger_content ?? '' });
+  const user = loadPrompt('tag-user', { content: sourceForPrompt(article.trigger_content ?? '') });
   const result = await structured<TagResult>(system, user, tagSchema(tags));
 
   // Declining is terminal — only do it on an explicit verdict. Malformed

@@ -7,6 +7,7 @@ const CHIP_CLASS: Record<string, string> = {
 
 const CHIP_LABEL: Record<string, string> = {
   new: 'ingested',
+  scrape_retry: 'waiting for source',
   scraped: 'scraped',
   tagged: 'tagged',
   written: 'written',

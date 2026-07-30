@@ -5,6 +5,7 @@ import { resolvePersona } from '../personas';
 import { getTagPersonaId } from '../tags';
 import { generateSlug } from '../slug';
 import { renderMarkdown } from '../markdown';
+import { containsSourceProcessLanguage, sourceForPrompt } from '../sourceQuality';
 import type { Article } from '../types';
 
 interface FinishResult {
@@ -41,7 +42,7 @@ export async function writeHandler(article: Article): Promise<string> {
 
   const draft = await complete(
     loadPrompt('draft-system', { persona_style: persona.style }),
-    loadPrompt('draft-user', { content: article.trigger_content ?? '' })
+    loadPrompt('draft-user', { content: sourceForPrompt(article.trigger_content ?? '') })
   );
 
   const humanized = await complete(
@@ -54,6 +55,12 @@ export async function writeHandler(article: Article): Promise<string> {
     loadPrompt('finish-user', { content: humanized }),
     FINISH_SCHEMA
   );
+
+  if (containsSourceProcessLanguage(finished.title)
+    || containsSourceProcessLanguage(finished.content_md)
+    || containsSourceProcessLanguage(finished.summary)) {
+    throw new Error('draft refers to the supplied source instead of reporting the story');
+  }
 
   const contentHtml = renderMarkdown(finished.content_md);
   const slug = await generateSlug(finished.title, slugExists);

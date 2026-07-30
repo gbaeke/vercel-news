@@ -31,8 +31,8 @@ export async function enqueueArticle(input: EnqueueArticleInput): Promise<Enqueu
        SELECT EXISTS (SELECT 1 FROM deleted_urls WHERE url = $2) AS value
      ),
      inserted AS (
-       INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, status)
-       SELECT $1, $2, $3, $4, 'new'
+       INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, source_rss_content, status)
+       SELECT $1, $2, $3, $4, $4, 'new'
        WHERE NOT (SELECT value FROM blocked)
        ON CONFLICT (trigger_url) DO NOTHING
        RETURNING id, status

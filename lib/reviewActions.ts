@@ -81,6 +81,26 @@ export async function requestNewImageById(id: number): Promise<ReviewMutationRes
   return rows.length > 0 ? { ok: true } : failedMutationResult(id);
 }
 
+// Re-run the complete pipeline after a source problem is discovered during
+// review. Clear derived editorial fields so a stale draft can never be
+// mistaken for the replacement while the new source is being collected.
+export async function refreshArticleSourceById(id: number): Promise<ReviewMutationResult> {
+  const rows = await query<{ id: number }>(
+    `UPDATE articles
+     SET status = 'new', tags = NULL, persona = NULL, title = NULL,
+         content_md = NULL, content_html = NULL, summary = NULL, seo_summary = NULL,
+         thumbnail_url = NULL, feedback = NULL, error = NULL, failed_from = NULL,
+         source_attempt_count = 0, source_last_attempt_at = NULL,
+         source_next_retry_at = NULL, source_fallback_reason = NULL,
+         source_extraction_method = 'unknown', source_content_length = NULL,
+         source_capped = false, updated_at = now()
+     WHERE id = $1 AND status = 'in_review'
+     RETURNING id`,
+    [id]
+  );
+  return rows.length > 0 ? { ok: true } : failedMutationResult(id);
+}
+
 export async function declineArticleById(id: number): Promise<ReviewMutationResult> {
   const rows = await query<{ id: number }>(
     `UPDATE articles
@@ -95,7 +115,9 @@ export async function declineArticleById(id: number): Promise<ReviewMutationResu
 export async function retryArticleById(id: number): Promise<ReviewMutationResult> {
   const rows = await query<{ id: number }>(
     `UPDATE articles
-     SET status = failed_from, error = NULL, failed_from = NULL, updated_at = now()
+     SET status = failed_from, error = NULL, failed_from = NULL,
+         source_attempt_count = CASE WHEN failed_from = 'new' THEN 0 ELSE source_attempt_count END,
+         source_next_retry_at = NULL, updated_at = now()
      WHERE id = $1 AND status = 'failed' AND failed_from IS NOT NULL
      RETURNING id`,
     [id]

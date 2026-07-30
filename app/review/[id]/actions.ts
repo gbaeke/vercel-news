@@ -9,6 +9,7 @@ import {
   approveAndPublishById,
   requestRewriteById,
   requestNewImageById,
+  refreshArticleSourceById,
   declineArticleById,
   retryArticleById,
   unpublishArticleById,
@@ -117,6 +118,21 @@ export async function requestNewImage(rawId: number) {
   revalidatePath('/review');
   const failure = mutationFailureMessage(result);
   redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'New thumbnail requested.'));
+}
+
+export async function refreshArticleSource(rawId: number) {
+  const id = validArticleId(rawId);
+  let result: ReviewMutationResult;
+  try {
+    result = await refreshArticleSourceById(id);
+  } catch (error) {
+    logUnexpected('refresh source', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not refresh the source right now. Please try again.'));
+  }
+
+  revalidatePath('/review');
+  const failure = mutationFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Source refresh queued.'));
 }
 
 export async function declineArticle(rawId: number) {

@@ -5,6 +5,7 @@ import {
   approveAndPublishById,
   requestRewriteById,
   requestNewImageById,
+  refreshArticleSourceById,
   declineArticleById,
   retryArticleById,
   unpublishArticleById,
@@ -77,6 +78,20 @@ describe('review actions', () => {
     await requestNewImageById(id);
     const [row] = await query<{ status: string }>(`SELECT status FROM articles WHERE id=$1`, [id]);
     expect(row.status).toBe('image_requested');
+  });
+
+  it('refreshArticleSource clears the draft and queues a fresh scrape from review', async () => {
+    const rows = await query<{ id: number }>(
+      `INSERT INTO articles (source_feed, trigger_url, title, content_md, content_html, summary, tags, status)
+       VALUES ('openai', 'https://example.com/refresh', 'Old', 'Old body', '<p>Old body</p>', 'Old summary', $1, 'in_review')
+       RETURNING id`,
+      [JSON.stringify({ primary: 'models', secondary: [] })]
+    );
+    await expect(refreshArticleSourceById(rows[0].id)).resolves.toEqual({ ok: true });
+    const [row] = await query<{ status: string; title: string | null; content_md: string | null; tags: unknown }>(
+      `SELECT status, title, content_md, tags FROM articles WHERE id = $1`, [rows[0].id]
+    );
+    expect(row).toMatchObject({ status: 'new', title: null, content_md: null, tags: null });
   });
 
   it('decline sets status=declined', async () => {

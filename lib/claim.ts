@@ -12,6 +12,7 @@ export async function claimNext(): Promise<Article | null> {
      WHERE id = (
        SELECT id FROM articles
        WHERE status = ANY($1)
+         AND (status <> 'scrape_retry' OR source_next_retry_at IS NULL OR source_next_retry_at <= now())
          AND (claimed_at IS NULL OR claimed_at < now() - interval '10 minutes')
        ORDER BY updated_at ASC
        LIMIT 1

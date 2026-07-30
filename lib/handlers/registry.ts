@@ -10,6 +10,7 @@ export type Handler = (article: Article) => Promise<string>;
 
 export const HANDLERS: Record<string, Handler> = {
   new: scrapeHandler,
+  scrape_retry: scrapeHandler,
   scraped: tagHandler,
   tagged: writeHandler,
   written: thumbnailHandler,

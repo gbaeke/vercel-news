@@ -6,6 +6,14 @@ CREATE TABLE IF NOT EXISTS articles (
   trigger_url    TEXT NOT NULL UNIQUE,
   trigger_title  TEXT,
   trigger_content TEXT,
+  source_rss_content TEXT,
+  source_extraction_method TEXT NOT NULL DEFAULT 'unknown',
+  source_content_length INTEGER,
+  source_attempt_count INTEGER NOT NULL DEFAULT 0,
+  source_last_attempt_at TIMESTAMPTZ,
+  source_next_retry_at TIMESTAMPTZ,
+  source_fallback_reason TEXT,
+  source_capped BOOLEAN NOT NULL DEFAULT false,
   tags           JSONB,
   persona        TEXT,
   title          TEXT,
@@ -36,6 +44,20 @@ CREATE INDEX IF NOT EXISTS articles_status_idx ON articles (status, updated_at);
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(768);
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding_model TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ;
+
+-- Preserve source provenance independently of the processing state. Existing
+-- rows cannot be reconstructed, so they remain "unknown" until refreshed.
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_rss_content TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_extraction_method TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_content_length INTEGER;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_attempt_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_last_attempt_at TIMESTAMPTZ;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_next_retry_at TIMESTAMPTZ;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_fallback_reason TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_capped BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS articles_scrape_retry_idx
+ON articles (source_next_retry_at, updated_at)
+WHERE status = 'scrape_retry';
 
 CREATE INDEX IF NOT EXISTS articles_embedding_hnsw_idx
 ON articles USING hnsw (embedding vector_cosine_ops)

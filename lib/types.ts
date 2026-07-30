@@ -4,6 +4,14 @@ export interface Article {
   trigger_url: string;
   trigger_title: string | null;
   trigger_content: string | null;
+  source_rss_content: string | null;
+  source_extraction_method: 'page' | 'rss-fallback' | 'none' | 'unknown';
+  source_content_length: number | null;
+  source_attempt_count: number;
+  source_last_attempt_at: string | null;
+  source_next_retry_at: string | null;
+  source_fallback_reason: string | null;
+  source_capped: boolean;
   tags: { primary: string; secondary: string[] } | null;
   persona: string | null;
   title: string | null;

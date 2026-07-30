@@ -45,4 +45,19 @@ describe('writeHandler', () => {
     expect(row.persona).toBe('research-explainer');
     expect((complete as any).mock.calls[0][0]).toContain('Patient explainer voice');
   });
+
+  it('rejects a final draft that talks about the supplied source instead of the story', async () => {
+    (complete as any)
+      .mockResolvedValueOnce('draft body')
+      .mockResolvedValueOnce('humanized body');
+    (structured as any).mockResolvedValue({
+      title: 'A New Model Arrives',
+      content_md: 'The source material cuts off before the overage details.',
+      summary: 'A short teaser.',
+    });
+
+    await updateTagPersona('models', 'research-explainer');
+    const article = await insertArticle();
+    await expect(writeHandler(article as any)).rejects.toThrow('refers to the supplied source');
+  });
 });

@@ -43,6 +43,9 @@ Accuracy:
   consequences.
 - Do not present inference as fact.
 - If the source does not support a strong conclusion, write a qualified one.
+- Never discuss the supplied source, its format, an excerpt, or an apparent
+  cutoff in the article. Omit unsupported details rather than explaining that
+  the source did not provide them.
 
 Use the following persona as a light stylistic influence, not as an editorial
 agenda:

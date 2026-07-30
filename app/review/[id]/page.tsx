@@ -9,6 +9,7 @@ import {
   approveArticle,
   requestRewrite,
   requestNewImage,
+  refreshArticleSource,
   declineArticle,
   retryArticle,
   unpublishArticle,
@@ -97,6 +98,7 @@ export default async function ReviewDetailPage({
   const retry = retryArticle.bind(null, article.id);
   const unpublish = unpublishArticle.bind(null, article.id);
   const rewrite = requestRewrite.bind(null, article.id);
+  const refreshSource = refreshArticleSource.bind(null, article.id);
   const remove = deleteArticle.bind(null, article.id);
   const retryAudio = retryArticleAudio.bind(null, article.id);
 
@@ -175,6 +177,13 @@ export default async function ReviewDetailPage({
                 <SubmitButton
                   label="New thumbnail"
                   pendingLabel="Requesting thumbnail…"
+                  className="btn btn--wide"
+                />
+              </form>
+              <form action={refreshSource}>
+                <SubmitButton
+                  label="Re-fetch source & redraft"
+                  pendingLabel="Queuing source refresh…"
                   className="btn btn--wide"
                 />
               </form>
@@ -295,6 +304,20 @@ export default async function ReviewDetailPage({
               <div>
                 <span>Persona</span>
                 <span>{article.persona}</span>
+              </div>
+            )}
+            <div>
+              <span>Source</span>
+              <span>
+                {article.source_extraction_method}
+                {article.source_content_length ? ` · ${article.source_content_length.toLocaleString()} chars` : ''}
+                {article.source_attempt_count > 0 ? ` · ${article.source_attempt_count} attempt${article.source_attempt_count === 1 ? '' : 's'}` : ''}
+              </span>
+            </div>
+            {article.source_fallback_reason && (
+              <div>
+                <span>Source note</span>
+                <span style={{ textTransform: 'none' }}>{article.source_fallback_reason}</span>
               </div>
             )}
             <div>
