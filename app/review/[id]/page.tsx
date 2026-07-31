@@ -21,19 +21,21 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 const STAGES = [
-  { key: 'new', label: 'ingested' },
+  { key: 'rss_pending_review', label: 'source review' },
   { key: 'scraped', label: 'scraped' },
   { key: 'tagged', label: 'tagged' },
-  { key: 'written', label: 'written' },
-  { key: 'in_review', label: 'review' },
+  { key: 'rss_final_review', label: 'draft review' },
   { key: 'published', label: 'live' },
 ];
 
 function stageIndex(status: string): number {
   const direct = STAGES.findIndex((s) => s.key === status);
   if (direct >= 0) return direct;
-  if (status === 'rewrite_requested' || status === 'image_requested' || status === 'declined') return 4;
-  if (status === 'approved') return 5;
+  if (status === 'new') return 0;
+  if (status === 'scraped') return 1;
+  if (status === 'tagged') return 2;
+  if (status === 'written' || status === 'in_review' || status === 'rewrite_requested' || status === 'image_requested' || status === 'declined') return 3;
+  if (status === 'approved') return 4;
   return 0;
 }
 
@@ -133,6 +135,15 @@ export default async function ReviewDetailPage({
           <h1 className="article-title" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.2rem)' }}>
             {article.title ?? article.trigger_title ?? 'Untitled'}
           </h1>
+          {article.status === 'rss_pending_review' && (
+            <section className="source-details" style={{ margin: '0 0 1.25rem' }}>
+              <strong>RSS source preview</strong>
+              <p className="standfirst" style={{ margin: '0.6rem 0' }}>
+                {article.trigger_content ?? 'This feed item has no description.'}
+              </p>
+              <a href={article.trigger_url}>Open source article ↗</a>
+            </section>
+          )}
           {article.summary && <p className="standfirst">{article.summary}</p>}
           {article.thumbnail_url && (
             <figure className="article-figure">
@@ -156,6 +167,42 @@ export default async function ReviewDetailPage({
 
         <aside className="desk-panel">
           <h2>Actions</h2>
+          {article.status === 'rss_pending_review' && (
+            <>
+              <form action={approve}>
+                <SubmitButton
+                  label="Approve source & draft"
+                  pendingLabel="Approving source…"
+                  className="btn btn--primary btn--wide"
+                />
+              </form>
+              <form action={decline}>
+                <SubmitButton
+                  label="Decline"
+                  pendingLabel="Declining…"
+                  className="btn btn--danger btn--wide"
+                />
+              </form>
+            </>
+          )}
+          {article.status === 'rss_final_review' && (
+            <>
+              <form action={approve}>
+                <SubmitButton
+                  label="Final approve & publish"
+                  pendingLabel="Generating thumbnail & publishing…"
+                  className="btn btn--primary btn--wide"
+                />
+              </form>
+              <form action={decline}>
+                <SubmitButton
+                  label="Decline"
+                  pendingLabel="Declining…"
+                  className="btn btn--danger btn--wide"
+                />
+              </form>
+            </>
+          )}
           {article.status === 'in_review' && (
             <>
               <form action={approve}>
@@ -266,7 +313,7 @@ export default async function ReviewDetailPage({
               </form>
             </>
           )}
-          {!['in_review', 'failed', 'published'].includes(article.status) && (
+          {!['rss_pending_review', 'rss_final_review', 'in_review', 'failed', 'published'].includes(article.status) && (
             <p className="meta" style={{ margin: 0 }}>
               {article.status === 'declined'
                 ? 'Declined — it will not run again. Delete it below to clear it out.'

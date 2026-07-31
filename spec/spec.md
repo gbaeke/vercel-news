@@ -61,7 +61,9 @@ Every article moves through fixed statuses. This is the core of the system;
 every pipeline handler is a transition on this machine.
 
 ```
-new ──► scraped ──► tagged ──► written ──► in_review ──► approved ──► published
+RSS discovery ──► rss_pending_review ──► new ──► scraped ──► tagged ──► rss_final_review ──► approved ──► published
+
+manual/legacy: new ──► scraped ──► tagged ──► written ──► in_review ──► approved ──► published
                                               │   ▲
                      ┌────────────────────────┤   │
                      │                        │   │
@@ -78,10 +80,12 @@ any stage ──► failed  ──retry──► back to the status it failed fr
 
 | Status                | Meaning                                                 | Advanced by                          |
 | --------------------- | ------------------------------------------------------- | ------------------------------------ |
+| `rss_pending_review`  | RSS title/description/source shown; no draft or thumbnail yet | human action only                    |
 | `new`               | Feed item ingested, nothing processed yet               | worker                               |
 | `scraped`           | Source article text extracted and stored                | worker                               |
 | `tagged`            | Primary + secondary topic tags assigned                 | worker                               |
 | `written`           | Draft written, humanized, summarized; thumbnail pending | worker                               |
+| `rss_final_review`  | RSS draft ready; thumbnail and publication still blocked | human action only                    |
 | `in_review`         | Thumbnail done;**waits for a human**              | human action only                    |
 | `rewrite_requested` | Reviewer left feedback; needs a rewrite pass            | worker                               |
 | `image_requested`   | Reviewer wants a new thumbnail                          | worker                               |
@@ -356,17 +360,19 @@ possible — a single shared password checked against `REVIEW_PASSWORD` env var,
 set as an httpOnly cookie via a tiny login form, enforced in middleware. (It's a
 single-user system; don't build user management.)
 
-**List view:** articles grouped by status — `in_review` first, then `failed`,
+**List view:** articles grouped by status — RSS source review and final review first, then `failed`,
 then everything in-flight, then recent `published`/`declined`.
 
-**Detail view:** rendered article (title, thumbnail, HTML body, summary, tags,
-persona, version), the original source (`trigger_url` link + scraped text in a
-collapsible block), and error text if failed.
+**Detail view:** an RSS source-review item shows its title, feed description, and
+source link without a draft or thumbnail. A final-review item shows the rendered
+draft and source details. Legacy detail behavior remains unchanged.
 
 **Actions (each is a form POST that flips the status — nothing else):**
 
 | Action                     | Effect                                                                             |
 | -------------------------- | ---------------------------------------------------------------------------------- |
+| Approve RSS source         | `rss_pending_review → new`; drafting becomes eligible, but thumbnail/publication remain blocked |
+| Final-approve RSS draft    | `rss_final_review → approved`; generate thumbnail, then run the publish flow    |
 | Approve                    | `status = 'approved'` (worker publishes on next tick)                            |
 | Request rewrite            | store feedback text,`status = 'rewrite_requested'`                               |
 | New image                  | `status = 'image_requested'`                                                     |

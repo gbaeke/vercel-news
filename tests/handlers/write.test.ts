@@ -80,4 +80,27 @@ describe('writeHandler', () => {
     const [row] = await query<any>(`SELECT content_md FROM articles WHERE id = $1`, [article.id]);
     expect(row.content_md).toBe('humanized body');
   });
+
+  it('routes an RSS draft to final review without generating a thumbnail', async () => {
+    (complete as any)
+      .mockResolvedValueOnce('draft body')
+      .mockResolvedValueOnce('humanized body');
+    (structured as any).mockResolvedValue({
+      title: 'An RSS Draft',
+      content_md: 'humanized body',
+      summary: 'A draft teaser.',
+    });
+
+    const article = await insertArticle();
+    await query(`UPDATE articles SET rss_approval_required = true WHERE id = $1`, [article.id]);
+    const notify = vi.fn(async () => true);
+    const to = await writeHandler({ ...article, rss_approval_required: true } as any, { notifyFinalReview: notify });
+
+    expect(to).toBe('rss_final_review');
+    expect(notify).toHaveBeenCalledOnce();
+    const [row] = await query<any>(`SELECT status, thumbnail_url, content_md FROM articles WHERE id = $1`, [article.id]);
+    expect(row.status).toBe('rss_final_review');
+    expect(row.thumbnail_url).toBeNull();
+    expect(row.content_md).toBe('humanized body');
+  });
 });

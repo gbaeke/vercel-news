@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 const GROUPS = [
-  { title: 'Waiting for you', statuses: ['in_review'] },
+  { title: 'Waiting for source approval', statuses: ['rss_pending_review'] },
+  { title: 'Waiting for final approval', statuses: ['rss_final_review', 'in_review'] },
   { title: 'Failed', statuses: ['failed'] },
   {
     title: 'In the pipeline',

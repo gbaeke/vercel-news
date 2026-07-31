@@ -7,6 +7,8 @@ import { ingestFeeds } from '../../../lib/ingest';
 import { enqueueArticleAudioById, runAudioTick } from '../../../lib/audio';
 import {
   approveAndPublishById,
+  approveRssFirstReviewById,
+  approveRssFinalReviewAndPublishById,
   requestRewriteById,
   requestNewImageById,
   refreshArticleSourceById,
@@ -61,6 +63,35 @@ function revalidateArticleViews(): void {
 
 export async function approveArticle(rawId: number) {
   const id = validArticleId(rawId);
+  let firstReview: Awaited<ReturnType<typeof approveRssFirstReviewById>>;
+  try {
+    firstReview = await approveRssFirstReviewById(id);
+  } catch (error) {
+    logUnexpected('approve RSS source', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not approve this article right now. Please try again.'));
+  }
+
+  if (firstReview.ok) {
+    revalidatePath('/review');
+    redirect(feedbackUrl(articlePath(id), 'notice', 'Source approved. It is queued for drafting; no thumbnail or publication has been authorized yet.'));
+  }
+
+  let finalReview: Awaited<ReturnType<typeof approveRssFinalReviewAndPublishById>>;
+  try {
+    finalReview = await approveRssFinalReviewAndPublishById(id);
+  } catch (error) {
+    logUnexpected('approve RSS draft', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not approve this draft right now. Please try again.'));
+  }
+
+  if (finalReview.ok) {
+    revalidateArticleViews();
+    if (finalReview.outcome === 'queued') {
+      redirect(feedbackUrl(articlePath(id), 'error', 'Final approval was recorded, but publishing failed. It remains queued and the next scheduled run will retry it.'));
+    }
+    redirect(feedbackUrl(articlePath(id), 'notice', 'Final approval recorded. Thumbnail generated and article published.'));
+  }
+
   let result: Awaited<ReturnType<typeof approveAndPublishById>>;
   try {
     result = await approveAndPublishById(id);

@@ -2,7 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { query } from '../lib/db';
 import { ingestFeeds } from '../lib/ingest';
 import { runTick } from '../lib/tick';
-import { approveArticleById, unpublishArticleById, deleteArticleById } from '../lib/reviewActions';
+import {
+  approveArticleById,
+  approveRssFirstReviewById,
+  approveRssFinalReviewAndPublishById,
+  unpublishArticleById,
+  deleteArticleById,
+} from '../lib/reviewActions';
 import { getPublishedArticleBySlug } from '../lib/publicQueries';
 
 vi.mock('../lib/handlers/scrape', async (importOriginal) => {
@@ -33,19 +39,26 @@ function rss(items: { title: string; link: string; description: string }[]) {
 }
 
 describe('end-to-end pipeline (FAKE_LLM=1)', () => {
-  it('carries one feed item from ingest through to in_review in a single tick', async () => {
+  it('holds an RSS item for source review, then drafts without a thumbnail', async () => {
     process.env.FAKE_LLM = '1';
     const xml = rss([{ title: 'A New Model', link: 'https://example.com/e2e-1', description: 'A model was released.' }]);
     await ingestFeeds({ fetchFeedXml: async () => xml });
 
     await runTick();
+    const [sourceReview] = await query<{ id: number; status: string }>(
+      `SELECT id, status FROM articles WHERE trigger_url = 'https://example.com/e2e-1'`
+    );
+    expect(sourceReview.status).toBe('rss_pending_review');
+
+    await approveRssFirstReviewById(sourceReview.id);
+    await runTick();
 
     const [row] = await query<{ status: string; title: string; thumbnail_url: string }>(
       `SELECT status, title, thumbnail_url FROM articles WHERE trigger_url = 'https://example.com/e2e-1'`
     );
-    expect(row.status).toBe('in_review');
+    expect(row.status).toBe('rss_final_review');
     expect(row.title).toBeTruthy();
-    expect(row.thumbnail_url).toBeTruthy();
+    expect(row.thumbnail_url).toBeNull();
   });
 
   it('goes all the way to published and visible on the public site after approval', async () => {
@@ -54,16 +67,19 @@ describe('end-to-end pipeline (FAKE_LLM=1)', () => {
     await ingestFeeds({ fetchFeedXml: async () => xml });
     await runTick();
 
-    const [inReview] = await query<{ id: number; status: string }>(
+    const [sourceReview] = await query<{ id: number; status: string }>(
       `SELECT id, status FROM articles WHERE trigger_url = 'https://example.com/e2e-2'`
     );
-    expect(inReview.status).toBe('in_review');
+    expect(sourceReview.status).toBe('rss_pending_review');
 
-    await approveArticleById(inReview.id);
+    await approveRssFirstReviewById(sourceReview.id);
     await runTick();
+    const [draftReview] = await query<{ status: string }>(`SELECT status FROM articles WHERE id = $1`, [sourceReview.id]);
+    expect(draftReview.status).toBe('rss_final_review');
+    await approveRssFinalReviewAndPublishById(sourceReview.id);
 
     const [published] = await query<{ status: string; slug: string }>(
-      `SELECT status, slug FROM articles WHERE id = $1`, [inReview.id]
+      `SELECT status, slug FROM articles WHERE id = $1`, [sourceReview.id]
     );
     expect(published.status).toBe('published');
 
@@ -80,8 +96,9 @@ describe('end-to-end pipeline (FAKE_LLM=1)', () => {
     const [article] = await query<{ id: number }>(
       `SELECT id FROM articles WHERE trigger_url = 'https://example.com/e2e-3'`
     );
-    await approveArticleById(article.id);
+    await approveRssFirstReviewById(article.id);
     await runTick();
+    await approveRssFinalReviewAndPublishById(article.id);
     const [live] = await query<{ slug: string }>(`SELECT slug FROM articles WHERE id = $1`, [article.id]);
 
     await unpublishArticleById(article.id);

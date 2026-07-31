@@ -3,9 +3,12 @@ import { query } from './db';
 import { getFeeds, MAX_ITEMS_PER_POLL } from './feeds';
 import { htmlToText } from './text';
 import { enqueueArticle } from './articleQueue';
+import { sendRssFirstReviewEmail } from './notify';
+import type { Article } from './types';
 
 export interface IngestDeps {
   fetchFeedXml?: (url: string) => Promise<string>;
+  notifyFirstReview?: (article: Article) => Promise<boolean>;
 }
 
 async function defaultFetchFeedXml(url: string): Promise<string> {
@@ -36,6 +39,7 @@ export interface IngestFeedResult {
 
 export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResult[]> {
   const fetchFeedXml = deps.fetchFeedXml ?? defaultFetchFeedXml;
+  const notifyFirstReview = deps.notifyFirstReview ?? sendRssFirstReviewEmail;
   const parser = new Parser();
   const results: IngestFeedResult[] = [];
 
@@ -78,8 +82,17 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResu
         url: item.link,
         title: item.title ?? null,
         content: provisional,
+        requiresRssApproval: true,
       });
-      if (result.outcome === 'inserted') inserted += 1;
+      if (result.outcome === 'inserted') {
+        inserted += 1;
+        try {
+          const [article] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [result.id]);
+          if (article) await notifyFirstReview(article);
+        } catch (error) {
+          console.log(`[ingest] ${feed.name}: first-review email failed (${(error as Error).message})`);
+        }
+      }
     }
 
     const newest = items[0]?.link;

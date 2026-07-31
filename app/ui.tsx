@@ -1,5 +1,7 @@
 const CHIP_CLASS: Record<string, string> = {
   in_review: 'chip--review',
+  rss_pending_review: 'chip--review',
+  rss_final_review: 'chip--review',
   failed: 'chip--failed',
   published: 'chip--live',
   declined: 'chip--dead',
@@ -12,6 +14,8 @@ const CHIP_LABEL: Record<string, string> = {
   tagged: 'tagged',
   written: 'written',
   in_review: 'in review',
+  rss_pending_review: 'source review',
+  rss_final_review: 'final review',
   rewrite_requested: 'rewriting',
   image_requested: 'new image',
   approved: 'approved',

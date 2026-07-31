@@ -12,6 +12,7 @@ export interface ThumbnailDeps {
   uploadBlob?: (name: string, data: Buffer | string, contentType: string) => Promise<string>;
   notify?: (article: Article, thumbnailUrl: string | null) => Promise<boolean>;
   del?: BlobDeleter;
+  nextStatus?: string;
 }
 
 async function defaultUploadBlob(name: string, data: Buffer | string, contentType: string): Promise<string> {
@@ -23,6 +24,7 @@ export async function thumbnailHandler(article: Article, deps: ThumbnailDeps = {
   const generateImage = deps.generateImage ?? generateImageBytes;
   const uploadBlob = deps.uploadBlob ?? defaultUploadBlob;
   const notify = deps.notify ?? sendReviewReadyEmail;
+  const nextStatus = deps.nextStatus ?? 'in_review';
 
   let thumbnailUrl: string;
   let generated = false;
@@ -37,8 +39,8 @@ export async function thumbnailHandler(article: Article, deps: ThumbnailDeps = {
   }
 
   await query(
-    `UPDATE articles SET thumbnail_url = $1, status = 'in_review', claimed_at = NULL, updated_at = now() WHERE id = $2`,
-    [thumbnailUrl, article.id]
+    `UPDATE articles SET thumbnail_url = $1, status = $2, claimed_at = NULL, updated_at = now() WHERE id = $3`,
+    [thumbnailUrl, nextStatus, article.id]
   );
 
   // Sweep the image we just replaced. Strictly after the UPDATE, so the new

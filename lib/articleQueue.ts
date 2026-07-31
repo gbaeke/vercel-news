@@ -5,6 +5,7 @@ export interface EnqueueArticleInput {
   url: string;
   title?: string | null;
   content?: string | null;
+  requiresRssApproval?: boolean;
 }
 
 export type EnqueueArticleResult =
@@ -31,8 +32,8 @@ export async function enqueueArticle(input: EnqueueArticleInput): Promise<Enqueu
        SELECT EXISTS (SELECT 1 FROM deleted_urls WHERE url = $2) AS value
      ),
      inserted AS (
-       INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, source_rss_content, status)
-       SELECT $1, $2, $3, $4, $4, 'new'
+       INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, source_rss_content, rss_approval_required, status)
+       SELECT $1, $2, $3, $4, $4, $5, CASE WHEN $5 THEN 'rss_pending_review' ELSE 'new' END
        WHERE NOT (SELECT value FROM blocked)
        ON CONFLICT (trigger_url) DO NOTHING
        RETURNING id, status
@@ -49,7 +50,7 @@ export async function enqueueArticle(input: EnqueueArticleInput): Promise<Enqueu
      SELECT 'deleted'::text AS outcome, NULL::integer AS id, NULL::text AS status
      WHERE (SELECT value FROM blocked)
      LIMIT 1`,
-    [input.sourceFeed, input.url, input.title ?? null, input.content ?? null]
+    [input.sourceFeed, input.url, input.title ?? null, input.content ?? null, input.requiresRssApproval ?? false]
   );
 
   if (!row) {

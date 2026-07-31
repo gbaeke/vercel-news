@@ -12,7 +12,7 @@ function rss(items: { title: string; link: string; description: string }[]) {
 }
 
 describe('ingestFeeds', () => {
-  it('inserts at most MAX_ITEMS_PER_POLL newest items as status=new', async () => {
+  it('inserts at most MAX_ITEMS_PER_POLL newest items into first review', async () => {
     const xml = rss([
       { title: 'Newest', link: 'https://example.com/3', description: 'd3' },
       { title: 'Middle', link: 'https://example.com/2', description: 'd2' },
@@ -25,7 +25,25 @@ describe('ingestFeeds', () => {
       `SELECT trigger_url, status FROM articles ORDER BY trigger_url`
     );
     expect(rows.map((r) => r.trigger_url)).toEqual(['https://example.com/2', 'https://example.com/3']);
-    expect(rows.every((r) => r.status === 'new')).toBe(true);
+    expect(rows.every((r) => r.status === 'rss_pending_review')).toBe(true);
+  });
+
+  it('emails each newly discovered RSS item with its source preview', async () => {
+    const notified: number[] = [];
+    const xml = rss([{ title: 'Needs review', link: 'https://example.com/review-me', description: 'A useful feed description.' }]);
+
+    await ingestFeeds({
+      fetchFeedXml: async () => xml,
+      notifyFirstReview: async (article) => {
+        notified.push(article.id);
+        expect(article.status).toBe('rss_pending_review');
+        expect(article.trigger_title).toBe('Needs review');
+        expect(article.trigger_content).toContain('A useful feed description.');
+        return true;
+      },
+    });
+
+    expect(notified).toHaveLength(1);
   });
 
   it('stops at the last-seen URL and does not re-insert on a second poll', async () => {

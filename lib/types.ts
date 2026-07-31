@@ -23,6 +23,7 @@ export interface Article {
   thumbnail_url: string | null;
   feedback: string | null;
   version: number;
+  rss_approval_required: boolean;
   status: string;
   failed_from: string | null;
   error: string | null;

@@ -6,12 +6,17 @@ import { getTagPersonaId } from '../tags';
 import { generateSlug } from '../slug';
 import { renderMarkdown } from '../markdown';
 import { containsSourceProcessLanguage, sourceForPrompt } from '../sourceQuality';
+import { sendFinalReviewEmail } from '../notify';
 import type { Article } from '../types';
 
 interface FinishResult {
   title: string;
   content_md: string;
   summary: string;
+}
+
+export interface WriteDeps {
+  notifyFinalReview?: (article: Article) => Promise<boolean>;
 }
 
 const FINISH_SCHEMA = {
@@ -30,7 +35,7 @@ async function slugExists(slug: string): Promise<boolean> {
   return rows.length > 0;
 }
 
-export async function writeHandler(article: Article): Promise<string> {
+export async function writeHandler(article: Article, deps: WriteDeps = {}): Promise<string> {
   const primaryTag = article.tags?.primary ?? 'industry';
   const personaId = await getTagPersonaId(primaryTag);
   const persona = resolvePersona(personaId);
@@ -64,13 +69,26 @@ export async function writeHandler(article: Article): Promise<string> {
 
   const contentHtml = renderMarkdown(finished.content_md);
   const slug = await generateSlug(finished.title, slugExists);
+  const nextStatus = article.rss_approval_required ? 'rss_final_review' : 'written';
 
   await query(
     `UPDATE articles SET
        persona = $1, title = $2, content_md = $3, content_html = $4,
-       summary = $5, slug = $6, status = 'written', claimed_at = NULL, updated_at = now()
-     WHERE id = $7`,
-    [persona.name, finished.title, finished.content_md, contentHtml, finished.summary, slug, article.id]
+       summary = $5, slug = $6, status = $7, claimed_at = NULL, updated_at = now()
+     WHERE id = $8`,
+    [persona.name, finished.title, finished.content_md, contentHtml, finished.summary, slug, nextStatus, article.id]
   );
-  return 'written';
+
+  if (article.rss_approval_required) {
+    const [draft] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [article.id]);
+    if (draft) {
+      try {
+        await (deps.notifyFinalReview ?? sendFinalReviewEmail)(draft);
+      } catch (error) {
+        console.log(`[write] article ${article.id}: final-review email failed (${(error as Error).message})`);
+      }
+    }
+  }
+
+  return nextStatus;
 }

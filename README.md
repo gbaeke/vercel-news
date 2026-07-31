@@ -11,15 +11,17 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
 ## How it works
 
 - **All state lives in Postgres.** An article is a row; its pipeline position
-  is a `status` column (`new → scraped → tagged → written → in_review →
-  approved → published`). No queues, no daemons.
+  is a `status` column. RSS items first pause at source review, then follow
+  `new → scraped → tagged → rss_final_review → approved → published`; manual
+  and legacy rows retain the original pipeline. No queues, no daemons.
 - **The worker is a function.** `POST /api/tick` claims the next actionable
   article (`FOR UPDATE SKIP LOCKED`), runs the handler for its status, and
   loops until the queue is empty or the time budget runs out. A GitHub Actions
   workflow calls it every 5 minutes; a daily Vercel cron is the backstop.
-- **A human gates publication.** The password-protected `/review` desk shows
-  every draft with its pipeline position; approve publishes immediately,
-  rewrite/decline/retry are one click each.
+- **Humans gate source and publication.** The password-protected `/review` desk
+  first shows RSS title, feed description, and source link. First approval
+  permits drafting; final approval alone permits thumbnail generation and
+  publication.
 - **Declined drafts are cleaned up weekly.** A GitHub Actions workflow calls
   the app to permanently remove declined articles and any thumbnails that are
   no longer referenced.

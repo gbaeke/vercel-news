@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS articles (
   thumbnail_url  TEXT,
   feedback       TEXT,
   version        INTEGER NOT NULL DEFAULT 1,
+  rss_approval_required BOOLEAN NOT NULL DEFAULT false,
   status         TEXT NOT NULL DEFAULT 'new',
   failed_from    TEXT,
   error          TEXT,
@@ -44,6 +45,11 @@ CREATE INDEX IF NOT EXISTS articles_status_idx ON articles (status, updated_at);
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding vector(768);
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedding_model TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS embedded_at TIMESTAMPTZ;
+
+-- RSS discoveries now pause for an explicit source review before the article
+-- pipeline can scrape, write, thumbnail, or publish them. Existing rows keep
+-- the legacy behavior because this defaults to false.
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS rss_approval_required BOOLEAN NOT NULL DEFAULT false;
 
 -- Preserve source provenance independently of the processing state. Existing
 -- rows cannot be reconstructed, so they remain "unknown" until refreshed.

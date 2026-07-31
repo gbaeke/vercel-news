@@ -3,6 +3,8 @@ import { query } from '../lib/db';
 import {
   approveArticleById,
   approveAndPublishById,
+  approveRssFirstReviewById,
+  approveRssFinalReviewAndPublishById,
   requestRewriteById,
   requestNewImageById,
   refreshArticleSourceById,
@@ -22,6 +24,33 @@ async function insertArticle(status: string, extra: Record<string, any> = {}) {
 }
 
 describe('review actions', () => {
+  it('first RSS approval only queues the article pipeline', async () => {
+    const id = await insertArticle('rss_pending_review');
+    await query(`UPDATE articles SET rss_approval_required = true WHERE id = $1`, [id]);
+
+    const result = await approveRssFirstReviewById(id);
+    const [row] = await query<{ status: string; thumbnail_url: string | null }>(
+      `SELECT status, thumbnail_url FROM articles WHERE id = $1`, [id]
+    );
+    expect(result).toEqual({ ok: true });
+    expect(row).toEqual({ status: 'new', thumbnail_url: null });
+  });
+
+  it('final RSS approval generates the thumbnail before publishing', async () => {
+    const id = await insertArticle('rss_final_review');
+    await query(`UPDATE articles SET rss_approval_required = true, title = 'RSS Draft', summary = 'Summary' WHERE id = $1`, [id]);
+    const order: string[] = [];
+
+    const result = await approveRssFinalReviewAndPublishById(id, {
+      thumbnail: async () => { order.push('thumbnail'); return 'thumbnail'; },
+      publish: async () => { order.push('publish'); return 'published'; },
+    });
+
+    expect(result).toEqual({ ok: true, outcome: 'published' });
+    expect(order).toEqual(['thumbnail', 'publish']);
+    const [row] = await query<{ status: string }>(`SELECT status FROM articles WHERE id = $1`, [id]);
+    expect(row.status).toBe('approved');
+  });
   it('approve sets status=approved', async () => {
     const id = await insertArticle('in_review');
     await approveArticleById(id);

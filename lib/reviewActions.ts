@@ -5,6 +5,7 @@ import {
   type BlobCleanupDeps,
 } from './blobCleanup';
 import { publishHandler } from './handlers/publish';
+import { thumbnailHandler } from './handlers/thumbnail';
 import type { Article } from './types';
 
 export type ReviewMutationResult =
@@ -17,6 +18,11 @@ export type ApproveAndPublishResult =
   | Exclude<ReviewMutationResult, { ok: true }>;
 
 export interface PublishDeps {
+  publish?: (article: Article) => Promise<string>;
+}
+
+export interface FinalApprovalDeps {
+  thumbnail?: (article: Article) => Promise<string>;
   publish?: (article: Article) => Promise<string>;
 }
 
@@ -36,6 +42,47 @@ export async function approveArticleById(id: number): Promise<ReviewMutationResu
     [id]
   );
   return rows.length > 0 ? { ok: true } : failedMutationResult(id);
+}
+
+export async function approveRssFirstReviewById(id: number): Promise<ReviewMutationResult> {
+  const rows = await query<{ id: number }>(
+    `UPDATE articles
+     SET status = 'new', updated_at = now()
+     WHERE id = $1 AND status = 'rss_pending_review' AND rss_approval_required = true
+     RETURNING id`,
+    [id]
+  );
+  return rows.length > 0 ? { ok: true } : failedMutationResult(id);
+}
+
+export async function approveRssFinalReviewAndPublishById(
+  id: number,
+  deps: FinalApprovalDeps = {}
+): Promise<ApproveAndPublishResult> {
+  const rows = await query<{ id: number }>(
+    `UPDATE articles
+     SET status = 'approved', updated_at = now()
+     WHERE id = $1 AND status = 'rss_final_review' AND rss_approval_required = true
+     RETURNING id`,
+    [id]
+  );
+  if (rows.length === 0) {
+    const failure = await failedMutationResult(id);
+    return failure.ok ? { ok: false, reason: 'invalid_state', status: 'unknown' } : failure;
+  }
+
+  const [article] = await query<Article>(`SELECT * FROM articles WHERE id = $1`, [id]);
+  if (!article) return { ok: false, reason: 'not_found' };
+
+  try {
+    const thumbnail = deps.thumbnail ?? ((draft: Article) => thumbnailHandler(draft, { nextStatus: 'approved' }));
+    await thumbnail(article);
+    await (deps.publish ?? publishHandler)(article);
+    return { ok: true, outcome: 'published' };
+  } catch (err) {
+    console.error(`[review] final approval processing failed for article ${id}, left at approved`, err);
+    return { ok: true, outcome: 'queued' };
+  }
 }
 
 // Approve on the desk publishes immediately. If the publish step fails, the
@@ -105,7 +152,7 @@ export async function declineArticleById(id: number): Promise<ReviewMutationResu
   const rows = await query<{ id: number }>(
     `UPDATE articles
      SET status = 'declined', updated_at = now()
-     WHERE id = $1 AND status = 'in_review'
+     WHERE id = $1 AND status IN ('in_review', 'rss_pending_review', 'rss_final_review')
      RETURNING id`,
     [id]
   );
