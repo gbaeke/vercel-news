@@ -3,6 +3,7 @@ node_modules
 .next
 tsconfig.tsbuildinfo
 voice-previews/
+newsletter-previews/
 
 # env files: everything except the template and the (secret-free) test config
 .env*

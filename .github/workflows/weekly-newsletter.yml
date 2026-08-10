@@ -1,0 +1,67 @@
+name: weekly newsletter
+
+on:
+  schedule:
+    # Keep this timing in lockstep with weekly-podcast.yml without reusing its workflow.
+    - cron: '17 8 * * 1'
+      timezone: 'Europe/Brussels'
+  workflow_dispatch:
+    inputs:
+      week_ending:
+        description: 'Inclusive local week-ending date, for example 2026-08-09'
+        required: false
+        type: string
+      dry_run:
+        description: 'Render and upload a preview without sending email'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: weekly-newsletter
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Produce weekly newsletter
+        run: npm run newsletter:weekly
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NEWSLETTER_FROM: ${{ vars.NEWSLETTER_FROM }}
+          NEWSLETTER_RECIPIENTS: ${{ secrets.NEWSLETTER_RECIPIENTS }}
+          NEWSLETTER_REPLY_TO: ${{ vars.NEWSLETTER_REPLY_TO }}
+          REVIEW_NOTIFY_EMAIL: ${{ secrets.REVIEW_NOTIFY_EMAIL || vars.REVIEW_NOTIFY_EMAIL }}
+          REVIEW_NOTIFY_FROM: ${{ secrets.REVIEW_NOTIFY_FROM || vars.REVIEW_NOTIFY_FROM }}
+          NEWSLETTER_WEEK_ENDING: ${{ inputs.week_ending }}
+          NEWSLETTER_DRY_RUN: ${{ inputs.dry_run || false }}
+          NEWSLETTER_MAX_ARTICLES: ${{ vars.NEWSLETTER_MAX_ARTICLES || 20 }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          TEXT_MODEL: ${{ vars.NEWSLETTER_TEXT_MODEL || 'deepseek/deepseek-v4-flash' }}
+
+      - name: Upload dry-run preview
+        if: ${{ inputs.dry_run == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-newsletter-preview-${{ inputs.week_ending || 'previous-window' }}
+          path: newsletter-previews/*.html
+          if-no-files-found: error

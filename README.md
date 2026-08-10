@@ -108,6 +108,40 @@ The weekly schema is durable production state. Apply the idempotent migration
 before deploying this feature; never make the scheduled audio workflow run
 schema migrations.
 
+## Weekly newsletter
+
+The independent `.github/workflows/weekly-newsletter.yml` action runs Mondays
+at 08:17 in `Europe/Brussels`, matching the podcast schedule without reusing or
+modifying the podcast workflow. It gathers unique published articles from the
+previous seven complete local calendar days, drafts the intro and article
+summaries through the configured AI Gateway text model, renders the newsprint
+email, and sends it through a dedicated Resend path.
+
+Configure the action with the GitHub secrets `DATABASE_URL` and the existing
+`RESEND_API_KEY`. `NEWSLETTER_RECIPIENTS` and `NEWSLETTER_FROM` are optional
+overrides; if omitted, the action falls back to the existing
+`REVIEW_NOTIFY_EMAIL` and `REVIEW_NOTIFY_FROM` settings (with the established
+`The AI Wire <onboarding@resend.dev>` sender default). Optional controls are
+`NEWSLETTER_REPLY_TO`, `NEWSLETTER_MAX_ARTICLES`, and `NEWSLETTER_TEXT_MODEL`.
+Manual dispatch accepts `week_ending` as an inclusive `YYYY-MM-DD` local date.
+Set `dry_run` to `true` to skip all mail configuration and sending; the action
+writes `newsletter-previews/weekly-newsletter-YYYY-MM-DD.html` and uploads it
+as a workflow artifact. Locally, use `NEWSLETTER_DRY_RUN=true npm run
+newsletter:weekly` after configuring `DATABASE_URL` and `APP_URL`.
+This feature adds no database tables or migration.
+
+After publishing to Vercel, no new Vercel setting is required for the
+newsletter if the GitHub Action has the needed database, Resend, model, and
+review notification values. Reuse the existing GitHub `APP_URL` secret; add
+`DATABASE_URL`, `RESEND_API_KEY`, `AI_GATEWAY_API_KEY`, and
+`REVIEW_NOTIFY_EMAIL` as repository secrets. Add `REVIEW_NOTIFY_FROM` as a
+secret or repository variable if it is set explicitly. Leave
+`NEWSLETTER_FROM` and `NEWSLETTER_RECIPIENTS` unset to deliver only to the
+existing review-notification recipient. For a safe test, manually dispatch
+the action with `dry_run=true` and an explicit `week_ending`; inspect the
+uploaded HTML artifact. Only after that succeeds should you dispatch with
+`dry_run=false` for the live test.
+
 ## Deployment
 
 See [`docs/deployment.md`](docs/deployment.md). Short version: link the Vercel

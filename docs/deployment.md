@@ -25,8 +25,29 @@
    `.github/workflows/weekly-podcast.yml` runs on Monday at 08:17
    `Europe/Brussels` and can also be dispatched manually. The Action never runs
    migrations and does not commit generated media.
-9. Visit `/review/login`, log in with `REVIEW_PASSWORD`, click "Run tick now" to force the first ingest+processing cycle without waiting for the scheduler.
-10. Verify definition of done: a real feed item reaches `/review` as an
+9. For the weekly newsletter, no new Vercel setting is required after the app
+   is published: the independent GitHub Action connects directly to Neon and
+   Resend. Reuse the existing GitHub `APP_URL` secret and add
+   `DATABASE_URL`, `RESEND_API_KEY`, `AI_GATEWAY_API_KEY`, and
+   `REVIEW_NOTIFY_EMAIL` as repository secrets. If the review sender is
+   explicitly configured, also add `REVIEW_NOTIFY_FROM` as a secret or
+   repository variable. Leave
+   `NEWSLETTER_FROM` and `NEWSLETTER_RECIPIENTS` unset to use that same review
+   recipient and sender; set them only when newsletter-specific overrides are
+   desired. Optional repository variables are `NEWSLETTER_REPLY_TO`,
+   `NEWSLETTER_MAX_ARTICLES`, and `NEWSLETTER_TEXT_MODEL`.
+   `.github/workflows/weekly-newsletter.yml` runs independently at the same
+   Monday 08:17 `Europe/Brussels` schedule as the podcast action. It supports
+   a `week_ending` input in `YYYY-MM-DD` format; `dry_run=true` writes an HTML
+   preview and uploads it as a workflow artifact without requiring mail
+   settings or sending to recipients. This feature adds no database tables or
+   production migration.
+10. Safe rollout: manually dispatch `weekly newsletter` with an explicit
+   `week_ending` and `dry_run=true`, then inspect/download the uploaded HTML
+   artifact. After the preview is correct, manually dispatch the same date
+   with `dry_run=false` for one live delivery to the configured recipient.
+11. Visit `/review/login`, log in with `REVIEW_PASSWORD`, click "Run tick now" to force the first ingest+processing cycle without waiting for the scheduler.
+12. Verify definition of done: a real feed item reaches `/review` as an
    `in_review` draft with a thumbnail within ~30 minutes of first deploy. One
    Approve click makes it live and queues narration; a later tick makes the
    article player and `/podcast.xml` episode available. The migration does not
