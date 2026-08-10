@@ -5,6 +5,7 @@ import { StatusChip } from '../../ui';
 import type { Article, ArticleAudio } from '../../../lib/types';
 import { parseArticleId } from '../../../lib/reviewInput';
 import { SubmitButton } from '../submit-button';
+import { YouTubeEmbed } from '../../youtube-embed';
 import {
   approveArticle,
   requestRewrite,
@@ -146,6 +147,13 @@ export default async function ReviewDetailPage({
             </section>
           )}
           {article.summary && <p className="standfirst">{article.summary}</p>}
+          {article.youtube_video_id && (
+            <YouTubeEmbed
+              videoId={article.youtube_video_id}
+              title={`Watch ${article.trigger_title ?? article.title ?? 'the submitted YouTube video'}`}
+              variant="review"
+            />
+          )}
           {article.thumbnail_url && (
             <figure className="article-figure">
               <img className="print-block" src={article.thumbnail_url} alt="" />
@@ -158,12 +166,21 @@ export default async function ReviewDetailPage({
           )}
 
           <details className="source-details">
-            <summary>Source material</summary>
+            <summary>{article.youtube_video_id ? 'Transcript analysis' : 'Source material'}</summary>
             <p className="meta" style={{ margin: '0.75rem 0' }}>
               <a href={article.trigger_url}>{article.trigger_url}</a>
             </p>
             <pre>{article.trigger_content ?? '(no scraped text)'}</pre>
           </details>
+          {article.source_transcript && (
+            <details className="source-details">
+              <summary>Full video transcript</summary>
+              <p className="meta" style={{ margin: '0.75rem 0' }}>
+                Language: {article.source_transcript_lang ?? 'unknown'} · Provider: {article.source_provider ?? 'unknown'}
+              </p>
+              <pre>{article.source_transcript}</pre>
+            </details>
+          )}
         </article>
 
         <aside className="desk-panel">
@@ -366,6 +383,12 @@ export default async function ReviewDetailPage({
               <div>
                 <span>Source note</span>
                 <span style={{ textTransform: 'none' }}>{article.source_fallback_reason}</span>
+              </div>
+            )}
+            {article.source_external_job_id && (
+              <div>
+                <span>Transcript job</span>
+                <span>processing · {article.source_external_job_id}</span>
               </div>
             )}
             <div>

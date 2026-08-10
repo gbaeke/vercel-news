@@ -60,6 +60,25 @@ npm run dev
 Set `FAKE_LLM=1` to run the whole pipeline with canned model outputs — the
 test suite (`npm test`) always runs this way and costs $0.
 
+### YouTube article submissions
+
+Direct YouTube video URLs submitted on the review desk are canonicalized,
+deduplicated, transcribed, and sent through the same tag, writing, review, and
+publication pipeline as web articles. Published YouTube-backed articles embed
+the source video using YouTube's privacy-enhanced player.
+
+Set `SUPADATA_API_KEY` in `.env.local`. `YOUTUBE_TRANSCRIPT_MODE=auto` first
+uses public captions and falls back to generated speech-to-text when captions
+are unavailable; use `native` to disable that paid fallback. Long transcripts
+are analyzed in timestamped sections so the model does not silently omit the
+middle of a video. The full transcript remains visible only on the review desk.
+
+For a local end-to-end test, start the app, submit a public YouTube URL on
+`/review`, then click **Run tick now**. If speech-to-text returns an asynchronous
+job, wait a minute and run the tick again. Keep `FAKE_LLM=1` if you want to test
+transcript ingestion and UI rendering without paying for article-generation
+model calls; Supadata transcript usage is still real.
+
 To compare the recommended voices with a short real sample:
 
 ```bash

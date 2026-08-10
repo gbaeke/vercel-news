@@ -1,4 +1,5 @@
 import { query } from './db';
+import { parseYouTubeVideoUrl } from './youtube';
 
 export interface EnqueueArticleInput {
   sourceFeed: string;
@@ -27,13 +28,20 @@ interface QueueRow {
  * regardless of where they were discovered.
  */
 export async function enqueueArticle(input: EnqueueArticleInput): Promise<EnqueueArticleResult> {
+  const youtube = parseYouTubeVideoUrl(input.url);
+  const url = youtube?.canonicalUrl ?? input.url;
+  const sourceFeed = youtube ? 'youtube.com' : input.sourceFeed;
+  const sourceType = youtube ? 'youtube' : 'web';
   const [row] = await query<QueueRow>(
     `WITH blocked AS (
        SELECT EXISTS (SELECT 1 FROM deleted_urls WHERE url = $2) AS value
      ),
      inserted AS (
-       INSERT INTO articles (source_feed, trigger_url, trigger_title, trigger_content, source_rss_content, rss_approval_required, status)
-       SELECT $1, $2, $3, $4, $4, $5, CASE WHEN $5 THEN 'rss_pending_review' ELSE 'new' END
+       INSERT INTO articles (
+         source_feed, trigger_url, trigger_title, trigger_content, source_rss_content,
+         rss_approval_required, status, source_type, youtube_video_id
+       )
+       SELECT $1, $2, $3, $4, $4, $5, CASE WHEN $5 THEN 'rss_pending_review' ELSE 'new' END, $6, $7
        WHERE NOT (SELECT value FROM blocked)
        ON CONFLICT (trigger_url) DO NOTHING
        RETURNING id, status
@@ -50,7 +58,15 @@ export async function enqueueArticle(input: EnqueueArticleInput): Promise<Enqueu
      SELECT 'deleted'::text AS outcome, NULL::integer AS id, NULL::text AS status
      WHERE (SELECT value FROM blocked)
      LIMIT 1`,
-    [input.sourceFeed, input.url, input.title ?? null, input.content ?? null, input.requiresRssApproval ?? false]
+    [
+      sourceFeed,
+      url,
+      input.title ?? null,
+      input.content ?? null,
+      input.requiresRssApproval ?? false,
+      sourceType,
+      youtube?.videoId ?? null,
+    ]
   );
 
   if (!row) {

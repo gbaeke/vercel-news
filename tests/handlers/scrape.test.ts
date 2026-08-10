@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { query } from '../../lib/db';
 import { extractStructuredArticleBody, scrapeHandler } from '../../lib/handlers/scrape';
 
@@ -17,7 +17,90 @@ async function insertArticle(overrides: Partial<{ trigger_content: string; sourc
 
 const noWait = async () => {};
 
+async function insertYouTubeArticle() {
+  const [article] = await query(
+    `INSERT INTO articles (
+       source_feed, trigger_url, status, source_type, youtube_video_id
+     ) VALUES (
+       'youtube.com', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'new', 'youtube', 'dQw4w9WgXcQ'
+     ) RETURNING *`
+  );
+  return article;
+}
+
 describe('scrapeHandler', () => {
+  it('stores a YouTube transcript and its provenance instead of scraping page HTML', async () => {
+    const article = await insertYouTubeArticle();
+    const transcriptText = 'A substantive caption about a model release and its limitations. '.repeat(8);
+    const to = await scrapeHandler(article as any, {
+      fetchYouTubeTranscript: async () => ({
+        kind: 'ready',
+        segments: [{ text: transcriptText, offset: 0, duration: 10_000, lang: 'en' }],
+        language: 'en',
+        method: 'youtube-captions',
+      }),
+      sourceProvider: 'test-provider',
+    });
+
+    expect(to).toBe('scraped');
+    const [row] = await query<{
+      status: string; trigger_content: string; source_transcript: string;
+      source_extraction_method: string; source_transcript_lang: string; source_provider: string;
+    }>(
+      `SELECT status, trigger_content, source_transcript, source_extraction_method,
+              source_transcript_lang, source_provider
+       FROM articles WHERE id = $1`,
+      [(article as any).id]
+    );
+    expect(row.status).toBe('scraped');
+    expect(row.trigger_content).toContain('Video transcript');
+    expect(row.source_transcript).toContain('[0:00] A substantive caption');
+    expect(row.source_extraction_method).toBe('youtube-captions');
+    expect(row.source_transcript_lang).toBe('en');
+    expect(row.source_provider).toBe('test-provider');
+  });
+
+  it('persists and polls an asynchronous transcript job without starting it again', async () => {
+    const article = await insertYouTubeArticle();
+    const fetchTranscript = vi.fn(async ({ jobId }: { jobId?: string | null }) => {
+      if (!jobId) return { kind: 'pending' as const, jobId: 'job-123', method: 'youtube-asr' as const };
+      return { kind: 'pending' as const, jobId, method: 'youtube-asr' as const };
+    });
+
+    await expect(scrapeHandler(article as any, { fetchYouTubeTranscript: fetchTranscript }))
+      .resolves.toBe('scrape_retry');
+    const [pending] = await query<any>(`SELECT * FROM articles WHERE id = $1`, [(article as any).id]);
+    expect(pending.source_external_job_id).toBe('job-123');
+    expect(pending.source_extraction_method).toBe('youtube-asr-pending');
+
+    await expect(scrapeHandler(pending, { fetchYouTubeTranscript: fetchTranscript }))
+      .resolves.toBe('scrape_retry');
+    expect(fetchTranscript).toHaveBeenNthCalledWith(2, {
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      jobId: 'job-123',
+    });
+    const [polled] = await query<{ source_attempt_count: number }>(
+      `SELECT source_attempt_count FROM articles WHERE id = $1`,
+      [(article as any).id]
+    );
+    expect(polled.source_attempt_count).toBe(1);
+  });
+
+  it('fails visibly when a YouTube transcript is unavailable', async () => {
+    const article = await insertYouTubeArticle();
+    const to = await scrapeHandler(article as any, {
+      fetchYouTubeTranscript: async () => ({ kind: 'unavailable', reason: 'video is private' }),
+    });
+    expect(to).toBe('failed');
+    const [row] = await query<{ status: string; failed_from: string; error: string }>(
+      `SELECT status, failed_from, error FROM articles WHERE id = $1`,
+      [(article as any).id]
+    );
+    expect(row.status).toBe('failed');
+    expect(row.failed_from).toBe('new');
+    expect(row.error).toContain('video is private');
+  });
+
   it('stores a substantive page extraction with its provenance', async () => {
     const article = await insertArticle();
     const longText = 'A'.repeat(500);

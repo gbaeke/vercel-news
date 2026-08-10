@@ -15,7 +15,9 @@
    `EMBEDDING_MODEL`, `SPEECH_MODEL=openai/tts-1`, `SPEECH_VOICE=alloy`,
    `CRON_SECRET`, `REVIEW_PASSWORD`, `APP_SECRET`, `APP_URL`, `TICK_BUDGET_MS`,
    `AUDIO_JOBS_PER_TICK=1`, and optionally `SEARCH_EMBEDDING_LIMIT_PER_HOUR`
-   (defaults to `100`). AI Gateway authentication is provided by Vercel
+   (defaults to `100`). For YouTube submissions, also set `SUPADATA_API_KEY`
+   and `YOUTUBE_TRANSCRIPT_MODE=auto` (or `native` to disable generated
+   speech-to-text). AI Gateway authentication is provided by Vercel
    OIDC; leave `FAKE_LLM` unset (defaults to real calls).
    Generate `APP_SECRET` from at least 32 random bytes; it signs review sessions
    and hashes rate-limit identifiers, and rotating it signs everyone out.

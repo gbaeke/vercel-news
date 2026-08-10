@@ -5,13 +5,27 @@ export interface Article {
   trigger_title: string | null;
   trigger_content: string | null;
   source_rss_content: string | null;
-  source_extraction_method: 'page' | 'rss-fallback' | 'none' | 'unknown';
+  source_extraction_method:
+    | 'page'
+    | 'rss-fallback'
+    | 'youtube-captions'
+    | 'youtube-asr'
+    | 'youtube-asr-pending'
+    | 'none'
+    | 'unknown';
   source_content_length: number | null;
   source_attempt_count: number;
   source_last_attempt_at: string | null;
   source_next_retry_at: string | null;
   source_fallback_reason: string | null;
   source_capped: boolean;
+  source_type: 'web' | 'youtube';
+  youtube_video_id: string | null;
+  source_transcript: string | null;
+  source_transcript_lang: string | null;
+  source_provider: string | null;
+  source_external_job_id: string | null;
+  source_job_started_at: string | null;
   tags: { primary: string; secondary: string[] } | null;
   persona: string | null;
   title: string | null;

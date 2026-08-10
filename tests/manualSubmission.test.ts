@@ -59,6 +59,38 @@ describe('submitManualStory', () => {
     expect(count).toBe('1');
   });
 
+  it('canonicalizes YouTube URL variants and records video provenance', async () => {
+    const first = await submitManualStory('https://youtu.be/dQw4w9WgXcQ?t=43');
+    const second = await submitManualStory('https://www.youtube.com/shorts/dQw4w9WgXcQ');
+
+    expect(first).toMatchObject({
+      ok: true,
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      queue: { outcome: 'inserted', id: 1 },
+    });
+    expect(second).toMatchObject({
+      ok: true,
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      queue: { outcome: 'duplicate', id: 1 },
+    });
+    const [row] = await query<{
+      source_feed: string; trigger_url: string; source_type: string; youtube_video_id: string;
+    }>(`SELECT source_feed, trigger_url, source_type, youtube_video_id FROM articles`);
+    expect(row).toEqual({
+      source_feed: 'youtube.com',
+      trigger_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      source_type: 'youtube',
+      youtube_video_id: 'dQw4w9WgXcQ',
+    });
+  });
+
+  it('rejects a YouTube channel or playlist URL as a story URL', async () => {
+    await expect(submitManualStory('https://www.youtube.com/@openai')).resolves.toEqual({
+      ok: false,
+      error: 'Enter a direct YouTube video URL, not a channel or playlist URL.',
+    });
+  });
+
   it('does not restore a URL the operator previously deleted', async () => {
     await query(`INSERT INTO deleted_urls (url) VALUES ($1)`, ['https://example.com/deleted']);
 

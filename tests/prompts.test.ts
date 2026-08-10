@@ -28,4 +28,17 @@ describe('loadPrompt', () => {
     expect(text).toContain('ARTICLE 1');
     expect(text).not.toContain('{{');
   });
+
+  it('builds timestamp-preserving YouTube transcript analysis prompts', () => {
+    const system = loadPrompt('youtube-analysis-system');
+    const user = loadPrompt('youtube-analysis-user', {
+      position: '2',
+      total: '4',
+      transcript: '[12:34] A speaker makes a qualified claim.',
+    });
+    expect(system).toContain('timestamps');
+    expect(user).toContain('section 2 of 4');
+    expect(user).toContain('[12:34]');
+    expect(user).not.toContain('{{');
+  });
 });

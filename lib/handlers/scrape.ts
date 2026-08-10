@@ -9,14 +9,130 @@ import {
 } from '../sourceQuality';
 import type { Article } from '../types';
 import { safeFetchText } from '../safeFetch';
+import {
+  fetchYouTubeTranscript,
+  formatTranscript,
+  MAX_VIDEO_TRANSCRIPT_LENGTH,
+  prepareTranscriptForPipeline,
+  type TranscriptSummarizer,
+  type YouTubeTranscriptFetcher,
+} from '../youtubeTranscript';
 
 const MAX_FETCH_ATTEMPTS = 2;
 const MAX_SCRAPE_CYCLES = 3;
 const RETRY_DELAY_MINUTES = 10;
+const TRANSCRIPT_RETRY_DELAY_MINUTES = 1;
+const MAX_TRANSCRIPT_JOB_AGE_MS = 50 * 60 * 1000;
+const MIN_TRANSCRIPT_LENGTH = 200;
 
 export interface ScrapeDeps {
   extract?: (url: string) => Promise<string | null>;
   sleep?: (milliseconds: number) => Promise<void>;
+  fetchYouTubeTranscript?: YouTubeTranscriptFetcher;
+  summarizeTranscript?: TranscriptSummarizer;
+  sourceProvider?: string;
+}
+
+async function failYouTubeScrape(article: Article, reason: string): Promise<string> {
+  await query(
+    `UPDATE articles SET
+       status = 'failed', failed_from = 'new', error = $1, claimed_at = NULL,
+       source_last_attempt_at = now(), source_next_retry_at = NULL,
+       source_fallback_reason = $1, updated_at = now()
+     WHERE id = $2`,
+    [`YouTube transcript failed: ${reason}`, article.id]
+  );
+  return 'failed';
+}
+
+async function retryYouTubeScrape(article: Article, reason: string): Promise<string> {
+  const cycle = (article.source_attempt_count ?? 0) + 1;
+  if (cycle >= MAX_SCRAPE_CYCLES) {
+    return failYouTubeScrape(article, `provider failed after ${cycle} attempts: ${reason}`);
+  }
+  await query(
+    `UPDATE articles SET
+       status = 'scrape_retry', claimed_at = NULL, source_attempt_count = $1,
+       source_last_attempt_at = now(), source_next_retry_at = now() + ($2 * interval '1 minute'),
+       source_fallback_reason = $3, updated_at = now()
+     WHERE id = $4`,
+    [cycle, TRANSCRIPT_RETRY_DELAY_MINUTES, reason, article.id]
+  );
+  return 'scrape_retry';
+}
+
+async function scrapeYouTube(article: Article, deps: ScrapeDeps): Promise<string> {
+  const fetchTranscript = deps.fetchYouTubeTranscript ?? fetchYouTubeTranscript;
+  const provider = deps.sourceProvider ?? 'supadata';
+  if (article.source_external_job_id && article.source_job_started_at) {
+    const jobAge = Date.now() - new Date(article.source_job_started_at).getTime();
+    if (Number.isFinite(jobAge) && jobAge > MAX_TRANSCRIPT_JOB_AGE_MS) {
+      return failYouTubeScrape(article, 'speech-to-text job did not finish within 50 minutes');
+    }
+  }
+
+  let result;
+  try {
+    result = await fetchTranscript({
+      url: article.trigger_url,
+      jobId: article.source_external_job_id,
+    });
+  } catch (error) {
+    return retryYouTubeScrape(article, (error as Error).message);
+  }
+
+  if (result.kind === 'unavailable') {
+    return failYouTubeScrape(article, result.reason);
+  }
+  if (result.kind === 'pending') {
+    await query(
+      `UPDATE articles SET
+         status = 'scrape_retry', claimed_at = NULL,
+         source_attempt_count = source_attempt_count + CASE WHEN source_external_job_id IS NULL THEN 1 ELSE 0 END,
+         source_last_attempt_at = now(), source_next_retry_at = now() + ($1 * interval '1 minute'),
+         source_extraction_method = 'youtube-asr-pending', source_provider = $2,
+         source_external_job_id = $3, source_job_started_at = COALESCE(source_job_started_at, now()),
+         source_fallback_reason = 'speech-to-text job is still processing', updated_at = now()
+       WHERE id = $4`,
+      [TRANSCRIPT_RETRY_DELAY_MINUTES, provider, result.jobId, article.id]
+    );
+    return 'scrape_retry';
+  }
+
+  const transcript = formatTranscript(result.segments);
+  if (transcript.length < MIN_TRANSCRIPT_LENGTH) {
+    return failYouTubeScrape(article, `transcript is only ${transcript.length} characters`);
+  }
+  if (transcript.length > MAX_VIDEO_TRANSCRIPT_LENGTH) {
+    return failYouTubeScrape(
+      article,
+      `transcript exceeds the ${MAX_VIDEO_TRANSCRIPT_LENGTH}-character safety limit`
+    );
+  }
+
+  const prepared = await prepareTranscriptForPipeline(transcript, deps.summarizeTranscript);
+  await query(
+    `UPDATE articles SET
+       trigger_content = $1, source_transcript = $2, status = 'scraped', claimed_at = NULL,
+       source_extraction_method = $3, source_content_length = $4,
+       source_attempt_count = source_attempt_count + CASE WHEN source_external_job_id IS NULL THEN 1 ELSE 0 END,
+       source_last_attempt_at = now(),
+       source_next_retry_at = NULL, source_fallback_reason = $5, source_capped = false,
+       source_transcript_lang = $6, source_provider = $7,
+       source_external_job_id = NULL, source_job_started_at = NULL, updated_at = now()
+     WHERE id = $8`,
+    [
+      prepared.content,
+      transcript,
+      result.method,
+      transcript.length,
+      prepared.summarized ? `long transcript analyzed in ${prepared.chunkCount} sections` : null,
+      result.language,
+      provider,
+      article.id,
+    ]
+  );
+  return 'scraped';
 }
 
 function collectArticleBodies(value: unknown, bodies: string[] = []): string[] {
@@ -64,6 +180,10 @@ async function defaultExtract(url: string): Promise<string | null> {
 }
 
 export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Promise<string> {
+  if (article.source_type === 'youtube' && article.youtube_video_id) {
+    return scrapeYouTube(article, deps);
+  }
+
   const extract = deps.extract ?? defaultExtract;
   const sleep = deps.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
 

@@ -1011,6 +1011,15 @@ img { max-width: 100%; display: block; }
 }
 .wire-standfirst { margin: 0; font-size: 21px; line-height: 1.5; color: var(--txt); font-style: italic; }
 .wire-hero { margin: 44px 0 0; position: relative; }
+.youtube-embed { margin: 44px 0 0; }
+.youtube-embed--review { margin: 0 0 2rem; max-width: 46rem; }
+.youtube-embed iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #000;
+}
 .wire-figcaption { margin-top: 10px; font-size: 11px; letter-spacing: 0.1em; color: var(--mut); display: flex; justify-content: space-between; }
 .wire-audio {
   max-width: 840px;

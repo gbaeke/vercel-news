@@ -14,6 +14,13 @@ CREATE TABLE IF NOT EXISTS articles (
   source_next_retry_at TIMESTAMPTZ,
   source_fallback_reason TEXT,
   source_capped BOOLEAN NOT NULL DEFAULT false,
+  source_type    TEXT NOT NULL DEFAULT 'web',
+  youtube_video_id TEXT,
+  source_transcript TEXT,
+  source_transcript_lang TEXT,
+  source_provider TEXT,
+  source_external_job_id TEXT,
+  source_job_started_at TIMESTAMPTZ,
   tags           JSONB,
   persona        TEXT,
   title          TEXT,
@@ -61,6 +68,16 @@ ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_last_attempt_at TIMESTAMPTZ
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_next_retry_at TIMESTAMPTZ;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_fallback_reason TEXT;
 ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_capped BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT 'web';
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS youtube_video_id TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_transcript TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_transcript_lang TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_provider TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_external_job_id TEXT;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_job_started_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS articles_youtube_video_idx
+ON articles (youtube_video_id)
+WHERE youtube_video_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS articles_scrape_retry_idx
 ON articles (source_next_retry_at, updated_at)
 WHERE status = 'scrape_retry';

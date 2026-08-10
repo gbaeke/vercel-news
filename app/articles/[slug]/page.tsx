@@ -9,6 +9,7 @@ import {
 import { formatDate } from '../../../lib/format';
 import { renderMarkdown } from '../../../lib/markdown';
 import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from '../../wire';
+import { YouTubeEmbed } from '../../youtube-embed';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -86,7 +87,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           {article.summary && <p className="wire-standfirst">{article.summary}</p>}
         </header>
 
-        {article.thumbnail_url && (
+        {article.youtube_video_id ? (
+          <YouTubeEmbed
+            videoId={article.youtube_video_id}
+            title={`Watch the source video for ${article.title ?? 'this dispatch'}`}
+          />
+        ) : article.thumbnail_url ? (
           <figure className="wire-hero">
             <img className="thumb" src={article.thumbnail_url} alt="" />
             <figcaption className="mono wire-figcaption">
@@ -94,7 +100,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               <span>FIG. 01</span>
             </figcaption>
           </figure>
-        )}
+        ) : null}
 
         {audio?.blob_url && (
           <section className="wire-audio" aria-labelledby="listen-heading">
@@ -112,7 +118,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           <div className="wire-body-inner" dangerouslySetInnerHTML={{ __html: visibleArticleHtml(article.content_md) }} />
           <p className="mono wire-source">
             <a href={article.trigger_url} target="_blank" rel="noopener noreferrer" className="wire-readlink">
-              Read the original at {sourceHost(article.trigger_url)} →
+              {article.youtube_video_id ? 'Watch the original video' : `Read the original at ${sourceHost(article.trigger_url)}`} →
             </a>
           </p>
           <div className="mono wire-end">

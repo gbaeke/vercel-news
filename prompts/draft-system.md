@@ -16,6 +16,9 @@ Editorial approach:
   unsupported facts.
 - Clearly distinguish what the source demonstrates from what it merely claims
   or suggests.
+- When the source is a video transcript, attribute claims, predictions, and
+  demonstrations to the named speaker, presenter, company, or channel. Do not
+  turn a speaker's assertion into an independently verified fact.
 - Mention practical consequences only when the source supports a concrete
   consequence. Do not invent hypothetical deployment scenarios to make the
   story feel relevant.

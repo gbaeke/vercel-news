@@ -1,5 +1,6 @@
 import { enqueueArticle, type EnqueueArticleResult } from './articleQueue';
 import { parsePublicHttpUrl } from './safeFetch';
+import { isYouTubeHost, parseYouTubeVideoUrl } from './youtube';
 
 const MAX_STORY_URL_LENGTH = 2_048;
 
@@ -36,6 +37,10 @@ export async function submitManualStory(rawUrl: unknown): Promise<ManualStoryRes
     return { ok: false, error: 'The story URL must use a public network address.' };
   }
 
+  if (isYouTubeHost(parsed.hostname) && !parseYouTubeVideoUrl(parsed)) {
+    return { ok: false, error: 'Enter a direct YouTube video URL, not a channel or playlist URL.' };
+  }
+
   const sourceFeed = parsed.hostname.replace(/^www\./i, '') || 'manual';
   const queue = await enqueueArticle({
     sourceFeed,
@@ -43,5 +48,6 @@ export async function submitManualStory(rawUrl: unknown): Promise<ManualStoryRes
     title: null,
     content: null,
   });
-  return { ok: true, url: parsed.toString(), queue };
+  const submittedUrl = parseYouTubeVideoUrl(parsed)?.canonicalUrl ?? parsed.toString();
+  return { ok: true, url: submittedUrl, queue };
 }

@@ -140,7 +140,9 @@ export async function refreshArticleSourceById(id: number): Promise<ReviewMutati
          source_attempt_count = 0, source_last_attempt_at = NULL,
          source_next_retry_at = NULL, source_fallback_reason = NULL,
          source_extraction_method = 'unknown', source_content_length = NULL,
-         source_capped = false, updated_at = now()
+         source_capped = false, source_transcript = NULL, source_transcript_lang = NULL,
+         source_provider = NULL, source_external_job_id = NULL, source_job_started_at = NULL,
+         updated_at = now()
      WHERE id = $1 AND status = 'in_review'
      RETURNING id`,
     [id]
@@ -164,7 +166,10 @@ export async function retryArticleById(id: number): Promise<ReviewMutationResult
     `UPDATE articles
      SET status = failed_from, error = NULL, failed_from = NULL,
          source_attempt_count = CASE WHEN failed_from = 'new' THEN 0 ELSE source_attempt_count END,
-         source_next_retry_at = NULL, updated_at = now()
+         source_next_retry_at = NULL,
+         source_external_job_id = CASE WHEN failed_from = 'new' THEN NULL ELSE source_external_job_id END,
+         source_job_started_at = CASE WHEN failed_from = 'new' THEN NULL ELSE source_job_started_at END,
+         updated_at = now()
      WHERE id = $1 AND status = 'failed' AND failed_from IS NOT NULL
      RETURNING id`,
     [id]

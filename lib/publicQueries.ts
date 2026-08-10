@@ -6,7 +6,7 @@ const PUBLIC_ARTICLE_COLUMNS = `
   id, source_feed, trigger_url, trigger_title, trigger_content, tags, persona,
   title, content_md, content_html, summary, seo_summary, slug, thumbnail_url,
   feedback, version, status, failed_from, error, claimed_at, created_at,
-  updated_at, published_at
+  updated_at, published_at, source_type, youtube_video_id
 `;
 
 export async function getPublishedArticles(tags: string[] = []): Promise<Article[]> {
