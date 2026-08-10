@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { verifyReviewPassword } from '../lib/reviewAuth';
 import {
+  REVIEW_SESSION_CLOCK_SKEW_SECONDS,
   REVIEW_SESSION_MAX_AGE_SECONDS,
   reviewSessionToken,
   verifyReviewSessionToken,
@@ -36,12 +37,30 @@ describe('reviewSessionToken', () => {
     expect(await verifyReviewSessionToken(token, 'one', 'signing-key', 2_000_000_000)).toBe(false);
   });
 
-  it('rejects tokens beyond the configured session lifetime', async () => {
+  it('accepts bounded clock drift between the login function and proxy', async () => {
+    const issuedAt = 1_800_000_000;
+    const token = await reviewSessionToken(
+      'one',
+      'signing-key',
+      issuedAt + REVIEW_SESSION_MAX_AGE_SECONDS
+    );
+    expect(await verifyReviewSessionToken(token, 'one', 'signing-key', issuedAt - 1)).toBe(true);
+    expect(
+      await verifyReviewSessionToken(
+        token,
+        'one',
+        'signing-key',
+        issuedAt - REVIEW_SESSION_CLOCK_SKEW_SECONDS
+      )
+    ).toBe(true);
+  });
+
+  it('rejects tokens beyond the configured session lifetime and clock tolerance', async () => {
     const now = 1_800_000_000;
     const token = await reviewSessionToken(
       'one',
       'signing-key',
-      now + REVIEW_SESSION_MAX_AGE_SECONDS + 1
+      now + REVIEW_SESSION_MAX_AGE_SECONDS + REVIEW_SESSION_CLOCK_SKEW_SECONDS + 1
     );
     expect(await verifyReviewSessionToken(token, 'one', 'signing-key', now)).toBe(false);
   });

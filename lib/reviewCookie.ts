@@ -1,5 +1,9 @@
 export const REVIEW_COOKIE_NAME = 'newsroom_review_session';
 export const REVIEW_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+// The login action and global proxy may execute in different regions. Permit
+// bounded clock drift without extending the intended seven-day session by
+// more than a few minutes.
+export const REVIEW_SESSION_CLOCK_SKEW_SECONDS = 5 * 60;
 
 function hex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes))
@@ -61,7 +65,7 @@ export async function verifyReviewSessionToken(
   if (
     !Number.isSafeInteger(expiresAt)
     || expiresAt <= now
-    || expiresAt > now + REVIEW_SESSION_MAX_AGE_SECONDS
+    || expiresAt > now + REVIEW_SESSION_MAX_AGE_SECONDS + REVIEW_SESSION_CLOCK_SKEW_SECONDS
   ) return false;
   const signature = fromHex(rawSignature);
   if (!signature) return false;
