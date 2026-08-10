@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, IBM_Plex_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { getPublicBaseUrl, SITE_NAME, SITE_TAGLINE } from '../lib/config';
 import './globals.css';
 
@@ -44,7 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }

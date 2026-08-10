@@ -28,7 +28,9 @@
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.157",
     "@extractus/article-extractor": "^8.1.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
+    "@vercel/speed-insights": "^2.0.0",
     "ai": "^6.0.235",
     "ipaddr.js": "^2.5.0",
     "js-yaml": "^5.2.2",
