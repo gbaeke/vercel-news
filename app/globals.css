@@ -1141,6 +1141,7 @@ img { max-width: 100%; display: block; }
 .wire-footer--article { margin-top: 72px; }
 .wire-endline { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); }
 .wire-footer-side { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.wire-footer-links { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 /* Scoped under .wire so it outranks `.wire a`, which would otherwise force
    full ink and break the match with the endline beside it. */
 .wire .wire-desk-link {

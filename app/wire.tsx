@@ -60,10 +60,18 @@ export function WireFooter({ article = false }: { article?: boolean }) {
       <Wordmark size="sm" />
       <span className="wire-footer-side">
         <span className="mono wire-endline">End of transmission · human-reviewed · {today}</span>
-        {/* Staff entrance — the desk itself stays behind the password. */}
-        <Link href="/review" className="mono wire-desk-link">
-          Desk ↗
-        </Link>
+        <span className="wire-footer-links">
+          <Link href="/feed.xml" className="mono wire-desk-link">
+            RSS feed ↗
+          </Link>
+          <Link href="/podcast.xml" className="mono wire-desk-link">
+            Podcast ↗
+          </Link>
+          {/* Staff entrance — the desk itself stays behind the password. */}
+          <Link href="/review" className="mono wire-desk-link">
+            Desk ↗
+          </Link>
+        </span>
       </span>
     </footer>
   );

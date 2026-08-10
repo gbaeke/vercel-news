@@ -1,15 +1,22 @@
 import type { Metadata, Viewport } from 'next';
 import { Newsreader, IBM_Plex_Mono } from 'next/font/google';
-import { SITE_NAME, SITE_TAGLINE } from '../lib/config';
+import { getPublicBaseUrl, SITE_NAME, SITE_TAGLINE } from '../lib/config';
 import './globals.css';
 
 const body = Newsreader({ subsets: ['latin'], style: ['normal', 'italic'], variable: '--font-body' });
 const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getPublicBaseUrl()),
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
   description: SITE_TAGLINE,
-  alternates: { types: { 'application/rss+xml': '/feed.xml' } },
+  alternates: { canonical: '/', types: { 'application/rss+xml': '/feed.xml' } },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_TAGLINE,
+  },
   appleWebApp: { capable: true, title: 'AI Wire', statusBarStyle: 'default' },
   // iOS reads the apple-prefixed name; Chrome deprecated it in favour of the
   // standardised one and warns in the console. Ship both.
