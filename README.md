@@ -108,6 +108,12 @@ The weekly schema is durable production state. Apply the idempotent migration
 before deploying this feature; never make the scheduled audio workflow run
 schema migrations.
 
+## Public article feed
+
+Published articles are available as RSS at `https://<your-domain>/feed.xml`.
+The feed includes the 50 latest articles, their summaries, and sanitized full
+article HTML. It is public and can be added to any RSS reader by URL.
+
 ## Weekly newsletter
 
 The independent `.github/workflows/weekly-newsletter.yml` action runs Mondays

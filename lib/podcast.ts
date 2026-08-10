@@ -1,4 +1,5 @@
 import { query } from './db';
+import { xmlEscape } from './xml';
 
 export const PODCAST_TITLE = 'The AI Wire Audio';
 export const PODCAST_AUTHOR = 'The AI Wire';
@@ -81,15 +82,6 @@ export async function getPodcastEpisodes(): Promise<PodcastEpisode[]> {
      ) AS podcast_episodes
      ORDER BY published_at DESC`
   );
-}
-
-export function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
 }
 
 function absoluteUrl(baseUrl: string, path: string): string {

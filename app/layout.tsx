@@ -9,6 +9,7 @@ const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '600'], 
 export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
   description: SITE_TAGLINE,
+  alternates: { types: { 'application/rss+xml': '/feed.xml' } },
   appleWebApp: { capable: true, title: 'AI Wire', statusBarStyle: 'default' },
   // iOS reads the apple-prefixed name; Chrome deprecated it in favour of the
   // standardised one and warns in the console. Ship both.

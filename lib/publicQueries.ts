@@ -28,6 +28,21 @@ export async function getPublishedArticles(tags: string[] = []): Promise<Article
   );
 }
 
+export async function getPublishedArticlesForFeed(limit = 50): Promise<Article[]> {
+  const safeLimit = Math.min(100, Math.max(1, Math.trunc(limit)));
+  return query<Article>(
+    `SELECT ${PUBLIC_ARTICLE_COLUMNS}
+     FROM articles
+     WHERE status = 'published'
+       AND title IS NOT NULL
+       AND slug IS NOT NULL
+       AND published_at IS NOT NULL
+     ORDER BY published_at DESC, id DESC
+     LIMIT $1`,
+    [safeLimit]
+  );
+}
+
 export async function getPublishedArticleBySlug(slug: string): Promise<Article | null> {
   const rows = await query<Article>(
     `SELECT ${PUBLIC_ARTICLE_COLUMNS}
