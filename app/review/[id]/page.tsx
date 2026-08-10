@@ -147,13 +147,6 @@ export default async function ReviewDetailPage({
             </section>
           )}
           {article.summary && <p className="standfirst">{article.summary}</p>}
-          {article.youtube_video_id && (
-            <YouTubeEmbed
-              videoId={article.youtube_video_id}
-              title={`Watch ${article.trigger_title ?? article.title ?? 'the submitted YouTube video'}`}
-              variant="review"
-            />
-          )}
           {article.thumbnail_url && (
             <figure className="article-figure">
               <img className="print-block" src={article.thumbnail_url} alt="" />
@@ -163,6 +156,13 @@ export default async function ReviewDetailPage({
             <div className="prose" dangerouslySetInnerHTML={{ __html: article.content_html }} />
           ) : (
             <p className="story-teaser">No draft yet — the pipeline hasn&apos;t written this one.</p>
+          )}
+          {article.youtube_video_id && (
+            <YouTubeEmbed
+              videoId={article.youtube_video_id}
+              title={`Watch ${article.trigger_title ?? article.title ?? 'the submitted YouTube video'}`}
+              variant="review"
+            />
           )}
 
           <details className="source-details">

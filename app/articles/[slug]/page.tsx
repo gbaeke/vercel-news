@@ -87,12 +87,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           {article.summary && <p className="wire-standfirst">{article.summary}</p>}
         </header>
 
-        {article.youtube_video_id ? (
-          <YouTubeEmbed
-            videoId={article.youtube_video_id}
-            title={`Watch the source video for ${article.title ?? 'this dispatch'}`}
-          />
-        ) : article.thumbnail_url ? (
+        {!article.youtube_video_id && article.thumbnail_url ? (
           <figure className="wire-hero">
             <img className="thumb" src={article.thumbnail_url} alt="" />
             <figcaption className="mono wire-figcaption">
@@ -127,6 +122,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             <span className="wire-end-rule" />
           </div>
         </div>
+
+        {article.youtube_video_id && (
+          <YouTubeEmbed
+            videoId={article.youtube_video_id}
+            title={`Watch the source video for ${article.title ?? 'this dispatch'}`}
+          />
+        )}
       </article>
 
       {more.length > 0 && (
