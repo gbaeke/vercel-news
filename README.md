@@ -142,6 +142,46 @@ the action with `dry_run=true` and an explicit `week_ending`; inspect the
 uploaded HTML artifact. Only after that succeeds should you dispatch with
 `dry_run=false` for the live test.
 
+### Newsletter production settings
+
+These values belong in the GitHub repository, not in Vercel. In **Settings →
+Secrets and variables → Actions**, add the following as **repository secrets**:
+
+- `APP_URL`: the deployed site URL, including `https://`.
+- `DATABASE_URL`: the production Neon connection string.
+- `RESEND_API_KEY`: the Resend API key used to send the message.
+- `AI_GATEWAY_API_KEY`: the key used by the configured LLM integration.
+- `REVIEW_NOTIFY_EMAIL`: the existing review-notification recipient. This is
+  the default newsletter recipient.
+- `REVIEW_NOTIFY_FROM`: the existing review-notification sender, when one is
+  explicitly configured.
+
+The newsletter-specific settings are optional **repository variables**, except
+for the recipient list, which is an optional secret because it contains email
+addresses:
+
+- `NEWSLETTER_RECIPIENTS` (secret): comma-separated newsletter recipients.
+  When it is blank or absent, `REVIEW_NOTIFY_EMAIL` is used instead.
+- `NEWSLETTER_FROM` (variable): newsletter sender. When it is blank or absent,
+  `REVIEW_NOTIFY_FROM` is used; if that is also absent, the established
+  `The AI Wire <onboarding@resend.dev>` default is used.
+- `NEWSLETTER_REPLY_TO` (variable): optional reply-to address; it has no
+  fallback and is omitted when unset.
+- `NEWSLETTER_TEXT_MODEL` (variable): optional model name; the default is
+  `deepseek/deepseek-v4-flash`.
+- `NEWSLETTER_MAX_ARTICLES` (variable): optional limit from 1 to 100; the
+  default is 20.
+
+Leave `NEWSLETTER_RECIPIENTS` and `NEWSLETTER_FROM` unset when the newsletter
+should go only to the existing notification recipient. The scheduled action
+does not need any additional Vercel configuration. To test safely, open
+**Actions → weekly newsletter → Run workflow**, enter an explicit
+`week_ending` such as `2026-08-09`, and set `dry_run` to `true`. Confirm that
+the run succeeds and download its HTML artifact. A dry-run never calls Resend.
+Only after reviewing that artifact should you run the same date with
+`dry_run` set to `false`; that performs one delivery using the resolved
+recipient configuration above.
+
 ## Deployment
 
 See [`docs/deployment.md`](docs/deployment.md). Short version: link the Vercel
