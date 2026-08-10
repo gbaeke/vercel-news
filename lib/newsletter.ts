@@ -374,14 +374,29 @@ export function renderNewsletterHtml(
     const image = imageUrl
       ? `<a href="${escapeHtml(articleUrl)}"><img src="${escapeHtml(imageUrl)}" alt="" width="132" style="width:132px;max-width:100%;height:auto;display:block;border:1px solid #191713;" /></a>`
       : '';
+    const number = String(articles.length - index).padStart(2, '0');
+    const metadataText = `${escapeHtml(article.source_feed)} ▸ ${escapeHtml(articleTag(article))} · filed ${escapeHtml(formatDate(article.published_at, timeZone))}`;
+    const metadata = `<div style="font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6B6459;">${metadataText}</div>`;
+    const headline = `<h2 style="margin:7px 0 7px;font:700 24px/1.08 Newsreader,Georgia,serif;letter-spacing:-.015em;"><a href="${escapeHtml(articleUrl)}" style="color:#191713;text-decoration:none;">${escapeHtml(article.title)}</a></h2>`;
+    const summary = `<p style="margin:0;color:#3B372F;font:16px/1.5 Newsreader,Georgia,serif;">${escapeHtml(summaries.get(article.id) ?? article.summary)}</p>`;
+    const mobileImage = image
+      ? `<tr><td class="story-mobile-image" style="padding:24px 0 14px;text-align:right;vertical-align:top;">${image}</td></tr>`
+      : '';
     return `<tr>
-      <td style="width:34px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;font:600 18px/1 'IBM Plex Mono',monospace;color:#C8361E;">${String(articles.length - index).padStart(2, '0')}</td>
-      <td style="padding:24px 16px 24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;">
-        <div style="font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6B6459;">${escapeHtml(article.source_feed)} ▸ ${escapeHtml(articleTag(article))} · filed ${escapeHtml(formatDate(article.published_at, timeZone))}</div>
-        <h2 style="margin:7px 0 7px;font:700 24px/1.08 Newsreader,Georgia,serif;letter-spacing:-.015em;"><a href="${escapeHtml(articleUrl)}" style="color:#191713;text-decoration:none;">${escapeHtml(article.title)}</a></h2>
-        <p style="margin:0;color:#3B372F;font:16px/1.5 Newsreader,Georgia,serif;">${escapeHtml(summaries.get(article.id) ?? article.summary)}</p>
+      <td colspan="3" style="padding:0;">
+        <table class="story-desktop" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="display:table;width:100%;border-collapse:collapse;"><tbody><tr>
+          <td style="width:34px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;font:600 18px/1 'IBM Plex Mono',monospace;color:#C8361E;">${number}</td>
+          <td style="padding:24px 16px 24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;">${metadata}${headline}${summary}</td>
+          ${image ? `<td style="width:132px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;">${image}</td>` : '<td style="width:132px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);"></td>'}
+        </tr></tbody></table>
+        <table class="story-mobile" role="presentation" width="100%" cellspacing="0" cellpadding="0" style="display:none;width:100%;border-collapse:collapse;"><tbody>
+          ${mobileImage}
+          <tr><td class="story-mobile-copy" style="padding:${image ? '0 0 24px' : '24px 0'};border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;">
+            <div style="margin:0 0 8px;font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#6B6459;"><span style="display:inline-block;margin-right:12px;font:600 18px/1 'IBM Plex Mono',monospace;color:#C8361E;">${number}</span>${metadataText}</div>
+            ${headline}${summary}
+          </td></tr>
+        </tbody></table>
       </td>
-      ${image ? `<td style="width:132px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);vertical-align:top;">${image}</td>` : '<td style="width:132px;padding:24px 0;border-bottom:1px solid rgba(25,23,19,.22);"></td>'}
     </tr>`;
   }).join('');
 
@@ -390,7 +405,7 @@ export function renderNewsletterHtml(
 <style>
   body{margin:0;background:#F4F0E8;color:#191713;font-family:Newsreader,Georgia,serif}
   a:hover{color:#C8361E!important}
-  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.header-meta{display:block!important}.header-date{display:block!important;margin-top:6px!important}.masthead{display:block!important}.tagline{margin-top:16px!important}.story-image{display:none!important}.wordmark{font-size:52px!important}}
+  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.header-meta{display:block!important}.header-date{display:block!important;margin-top:6px!important}.masthead{display:block!important}.tagline{margin-top:16px!important}.story-desktop{display:none!important}.story-mobile{display:table!important;width:100%!important}.wordmark{font-size:52px!important}}
 </style></head>
 <body style="margin:0;background:#F4F0E8;background-image:radial-gradient(rgba(25,23,19,.035) 1px,transparent 1px);background-size:5px 5px;">
   <div class="email" style="max-width:760px;margin:0 auto;padding:0 54px 44px;background:#FDFBF6;">

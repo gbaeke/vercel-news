@@ -160,6 +160,11 @@ describe('newsletter drafting and rendering', () => {
     expect(html).toContain('https://news.example.com/articles/article-1');
     expect(html).toContain('https://blob.example.com/one.png');
     expect(html).not.toContain('data:image');
+    expect(html).toContain('.story-desktop{display:none!important}.story-mobile{display:table!important;width:100%!important}');
+    const mobileImageIndex = html.indexOf('class="story-mobile-image"');
+    const mobileCopyIndex = html.indexOf('class="story-mobile-copy"');
+    expect(mobileImageIndex).toBeGreaterThanOrEqual(0);
+    expect(mobileCopyIndex).toBeGreaterThan(mobileImageIndex);
   });
 });
 
