@@ -1,4 +1,5 @@
 import { enqueueArticle, type EnqueueArticleResult } from './articleQueue';
+import { parsePublicHttpUrl } from './safeFetch';
 
 const MAX_STORY_URL_LENGTH = 2_048;
 
@@ -23,20 +24,24 @@ export async function submitManualStory(rawUrl: unknown): Promise<ManualStoryRes
   } catch {
     return { ok: false, error: 'Enter a valid absolute URL.' };
   }
-
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     return { ok: false, error: 'The story URL must use http or https.' };
   }
   if (parsed.username || parsed.password) {
     return { ok: false, error: 'Story URLs cannot contain a username or password.' };
   }
+  try {
+    parsed = parsePublicHttpUrl(parsed.toString(), 'Story URL');
+  } catch {
+    return { ok: false, error: 'The story URL must use a public network address.' };
+  }
 
   const sourceFeed = parsed.hostname.replace(/^www\./i, '') || 'manual';
   const queue = await enqueueArticle({
     sourceFeed,
-    url,
+    url: parsed.toString(),
     title: null,
     content: null,
   });
-  return { ok: true, url, queue };
+  return { ok: true, url: parsed.toString(), queue };
 }

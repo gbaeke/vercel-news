@@ -3,17 +3,22 @@ import { login } from './actions';
 import { SubmitButton } from '../submit-button';
 import { safeReviewReturnTo } from '../../../lib/reviewReturnTo';
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; next?: string };
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const returnTo = safeReviewReturnTo(searchParams.next);
-  const errorMessage = searchParams.error === 'config'
+  const params = await searchParams;
+  const returnTo = safeReviewReturnTo(params.next);
+  const errorMessage = params.error === 'config'
     ? 'The desk password is not configured on the server.'
-    : searchParams.error === 'unavailable'
+    : params.error === 'unavailable'
       ? 'The desk could not create a session. Please try again.'
-      : searchParams.error
+      : params.error === 'rate_limit'
+        ? 'Too many login attempts. Wait 15 minutes and try again.'
+        : params.error === 'session'
+          ? 'Your desk session expired. Sign in again.'
+          : params.error
         ? 'Wrong password. Try again.'
         : null;
 

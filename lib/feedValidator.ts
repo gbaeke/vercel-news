@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+import { parsePublicHttpUrl, safeFetchText } from './safeFetch';
 
 export type FeedValidation =
   | { ok: true; title: string; itemCount: number; warning?: string }
@@ -9,25 +10,32 @@ export interface ValidatorDeps {
 }
 
 const FETCH_TIMEOUT_MS = 10_000;
+const MAX_FEED_BYTES = 2 * 1024 * 1024;
+const FEED_CONTENT_TYPES = [
+  'application/rss+xml',
+  'application/atom+xml',
+  'application/xml',
+  'text/xml',
+  'text/plain',
+];
 
 async function defaultFetchFeedXml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)' },
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  const res = await safeFetchText(url, {
+    userAgent: 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)',
+    timeoutMs: FETCH_TIMEOUT_MS,
+    maxBytes: MAX_FEED_BYTES,
+    allowedContentTypes: FEED_CONTENT_TYPES,
   });
   if (!res.ok) throw new Error(`feed returned HTTP ${res.status}`);
-  return res.text();
+  return res.text;
 }
 
 export async function validateFeed(url: string, deps: ValidatorDeps = {}): Promise<FeedValidation> {
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(url);
+    parsedUrl = parsePublicHttpUrl(url, 'Feed URL');
   } catch {
     return { ok: false, error: 'not a valid URL' };
-  }
-  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-    return { ok: false, error: 'URL must use http or https' };
   }
 
   const fetchFeedXml = deps.fetchFeedXml ?? defaultFetchFeedXml;

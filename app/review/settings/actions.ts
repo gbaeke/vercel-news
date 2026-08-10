@@ -11,6 +11,7 @@ import {
 import { addFeed, deleteFeed, getFeeds, normalizeFeedName } from '../../../lib/feeds';
 import { validateFeed } from '../../../lib/feedValidator';
 import { findPersona } from '../../../lib/personas';
+import { requireReviewSession } from '../../../lib/reviewSession';
 
 const MAX_FEEDBACK_MESSAGE_LENGTH = 1_500;
 
@@ -28,6 +29,7 @@ function unexpected(action: string, error: unknown): never {
 }
 
 export async function createTag(formData: FormData) {
+  await requireReviewSession();
   const name = normalizeTagName(String(formData.get('name') ?? ''));
   const personaId = String(formData.get('persona') ?? '');
   if (!name) {
@@ -52,6 +54,7 @@ export async function createTag(formData: FormData) {
 }
 
 export async function assignTagPersona(name: string, formData: FormData) {
+  await requireReviewSession();
   const personaId = String(formData.get('persona') ?? '');
   if (!findPersona(personaId)) {
     done({ error: 'Choose a valid persona for that tag.' });
@@ -70,6 +73,7 @@ export async function assignTagPersona(name: string, formData: FormData) {
 }
 
 export async function removeTag(name: string) {
+  await requireReviewSession();
   let result: Awaited<ReturnType<typeof deleteTag>>;
   try {
     result = await deleteTag(name);
@@ -89,6 +93,7 @@ export async function removeTag(name: string) {
 }
 
 export async function createFeed(formData: FormData) {
+  await requireReviewSession();
   const name = normalizeFeedName(String(formData.get('name') ?? ''));
   const url = String(formData.get('url') ?? '').trim();
   if (!name) {
@@ -126,6 +131,7 @@ export async function createFeed(formData: FormData) {
 }
 
 export async function removeFeed(name: string) {
+  await requireReviewSession();
   let deleted: boolean;
   try {
     deleted = await deleteFeed(name);
@@ -139,6 +145,7 @@ export async function removeFeed(name: string) {
 }
 
 export async function testFeed(name: string) {
+  await requireReviewSession();
   let feed: Awaited<ReturnType<typeof getFeeds>>[number] | undefined;
   try {
     feed = (await getFeeds()).find((item) => item.name === name);

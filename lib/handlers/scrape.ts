@@ -8,6 +8,7 @@ import {
   MIN_RSS_SOURCE_LENGTH,
 } from '../sourceQuality';
 import type { Article } from '../types';
+import { safeFetchText } from '../safeFetch';
 
 const MAX_FETCH_ATTEMPTS = 2;
 const MAX_SCRAPE_CYCLES = 3;
@@ -48,12 +49,14 @@ export function extractStructuredArticleBody(html: string): string | null {
 }
 
 async function defaultExtract(url: string): Promise<string | null> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    signal: AbortSignal.timeout(10_000),
+  const res = await safeFetchText(url, {
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    timeoutMs: 10_000,
+    maxBytes: 5 * 1024 * 1024,
+    allowedContentTypes: ['text/html', 'application/xhtml+xml', 'text/plain'],
   });
   if (!res.ok) return null;
-  const html = await res.text();
+  const html = res.text;
   const article = await extractFromHtml(html, url);
   const candidates = [article?.content ?? null, extractStructuredArticleBody(html)]
     .filter((candidate): candidate is string => Boolean(candidate));

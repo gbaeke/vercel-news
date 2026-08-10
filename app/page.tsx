@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { getPublishedArticles } from '../lib/publicQueries';
 import { getTags } from '../lib/tags';
 import { formatDate } from '../lib/format';
@@ -7,6 +8,7 @@ import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from './wire'
 import { normalizeSearchQuery, searchPublishedArticles } from '../lib/search';
 import { SearchForm } from './search-form';
 import type { Article } from '../lib/types';
+import { consumeRateLimit, rateLimitKey, requestRateLimitKey } from '../lib/rateLimit';
 
 // Reading searchParams makes this page render per-request; at personal
 // traffic levels the spec explicitly blesses dynamic rendering (§9).
@@ -28,24 +30,58 @@ function matchesTag(article: Article, tag: string): boolean {
 }
 
 const PAGE_SIZE = 10;
+const SEARCH_LIMIT = 20;
+const SEARCH_WINDOW_SECONDS = 10 * 60;
+const SEARCH_GLOBAL_WINDOW_SECONDS = 60 * 60;
+
+function globalSearchLimit(): number {
+  const configured = Number(process.env.SEARCH_EMBEDDING_LIMIT_PER_HOUR);
+  return Number.isSafeInteger(configured) && configured > 0
+    ? Math.min(configured, 10_000)
+    : 100;
+}
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: { tag?: string; page?: string; q?: string };
+  searchParams: Promise<{ tag?: string; page?: string; q?: string }>;
 }) {
+  const params = await searchParams;
   const allTags = await getTags();
-  const active = allTags.includes(searchParams.tag ?? '') ? searchParams.tag! : 'all';
-  const searchQuery = normalizeSearchQuery(searchParams.q);
+  const active = allTags.includes(params.tag ?? '') ? params.tag! : 'all';
+  const searchQuery = normalizeSearchQuery(params.q);
   let searchFailed = false;
+  let searchLimited = false;
   let articles: Article[];
 
   if (searchQuery) {
     try {
-      articles = await searchPublishedArticles(
-        searchQuery,
-        active === 'all' ? [] : [active]
-      );
+      const key = await requestRateLimitKey('public-search', await headers());
+      const rateLimit = await consumeRateLimit(key, SEARCH_LIMIT, SEARCH_WINDOW_SECONDS);
+      if (!rateLimit.allowed) {
+        searchLimited = true;
+        articles = await getPublishedArticles();
+      } else {
+        // This application-wide ceiling is the actual spend boundary. The
+        // per-client limit above prevents one address from exhausting it, and
+        // the embedding cache means repeated normalized queries usually cost
+        // no model call even while they still count toward the ceiling.
+        const globalKey = await rateLimitKey('public-search', 'global');
+        const globalRateLimit = await consumeRateLimit(
+          globalKey,
+          globalSearchLimit(),
+          SEARCH_GLOBAL_WINDOW_SECONDS
+        );
+        if (!globalRateLimit.allowed) {
+          searchLimited = true;
+          articles = await getPublishedArticles();
+        } else {
+          articles = await searchPublishedArticles(
+            searchQuery,
+            active === 'all' ? [] : [active]
+          );
+        }
+      }
     } catch (error) {
       console.error('[search] semantic search failed; showing the latest articles', error);
       searchFailed = true;
@@ -55,7 +91,7 @@ export default async function HomePage({
     articles = await getPublishedArticles();
   }
 
-  const searching = Boolean(searchQuery) && !searchFailed;
+  const searching = Boolean(searchQuery) && !searchFailed && !searchLimited;
   const total = articles.length;
   const allRows = searching
     ? articles.map((article, i) => ({ article, no: i + 1 }))
@@ -65,7 +101,7 @@ export default async function HomePage({
         .filter(({ article }) => active === 'all' || matchesTag(article, active));
 
   const pages = searching ? 1 : Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
-  const page = Math.min(pages, Math.max(1, Number(searchParams.page) || 1));
+  const page = Math.min(pages, Math.max(1, Number(params.page) || 1));
   const rows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   // The lead-story hero only runs on the front page.
   const lead = !searching && page === 1 ? (articles[0] ?? null) : null;
@@ -115,6 +151,12 @@ export default async function HomePage({
       {searchFailed && (
         <p className="mono wire-search-note">
           Search is temporarily unavailable. The latest dispatches are shown below.
+        </p>
+      )}
+
+      {searchLimited && (
+        <p className="mono wire-search-note">
+          Search is temporarily rate-limited. Try again in a few minutes.
         </p>
       )}
 

@@ -19,6 +19,7 @@ import {
   type ReviewMutationResult,
 } from '../../../lib/reviewActions';
 import { parseArticleId, validateRewriteFeedback } from '../../../lib/reviewInput';
+import { requireReviewSession } from '../../../lib/reviewSession';
 
 type FeedbackKind = 'notice' | 'error';
 
@@ -62,6 +63,7 @@ function revalidateArticleViews(): void {
 }
 
 export async function approveArticle(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let firstReview: Awaited<ReturnType<typeof approveRssFirstReviewById>>;
   try {
@@ -117,6 +119,7 @@ export async function approveArticle(rawId: number) {
 }
 
 export async function requestRewrite(rawId: number, formData: FormData) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   const feedback = validateRewriteFeedback(formData.get('feedback'));
   if (!feedback.ok) {
@@ -137,6 +140,7 @@ export async function requestRewrite(rawId: number, formData: FormData) {
 }
 
 export async function requestNewImage(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -152,6 +156,7 @@ export async function requestNewImage(rawId: number) {
 }
 
 export async function refreshArticleSource(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -167,6 +172,7 @@ export async function refreshArticleSource(rawId: number) {
 }
 
 export async function declineArticle(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -182,6 +188,7 @@ export async function declineArticle(rawId: number) {
 }
 
 export async function retryArticle(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -197,6 +204,7 @@ export async function retryArticle(rawId: number) {
 }
 
 export async function unpublishArticle(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -212,6 +220,7 @@ export async function unpublishArticle(rawId: number) {
 }
 
 export async function retryArticleAudio(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: Awaited<ReturnType<typeof enqueueArticleAudioById>>;
   try {
@@ -234,6 +243,7 @@ export async function retryArticleAudio(rawId: number) {
 // The detail page is gone once the row is, so land the operator back on the
 // desk with a receipt instead of a 404.
 export async function deleteArticle(rawId: number) {
+  await requireReviewSession();
   const id = validArticleId(rawId);
   let result: ReviewMutationResult;
   try {
@@ -257,6 +267,7 @@ function shortened(value: string, max = 160): string {
 }
 
 export async function runTickNow() {
+  await requireReviewSession();
   let ingested: Awaited<ReturnType<typeof ingestFeeds>>;
   let processed: Awaited<ReturnType<typeof runTick>>;
   let audio: Awaited<ReturnType<typeof runAudioTick>>;

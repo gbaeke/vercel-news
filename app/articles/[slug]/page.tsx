@@ -10,8 +10,9 @@ import { formatDate } from '../../../lib/format';
 import { renderMarkdown } from '../../../lib/markdown';
 import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from '../../wire';
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const article = await getPublishedArticleBySlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getPublishedArticleBySlug(slug);
   if (!article) return {};
   return {
     title: article.title ?? undefined,
@@ -44,8 +45,9 @@ function visibleArticleHtml(markdown: string | null): string {
   return renderMarkdown(withoutLegacyAppendix);
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const article = await getPublishedArticleBySlug(params.slug);
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const article = await getPublishedArticleBySlug(slug);
 
   if (!article) {
     notFound();

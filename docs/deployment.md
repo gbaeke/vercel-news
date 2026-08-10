@@ -4,7 +4,8 @@
 2. Run the migration once against production `DATABASE_URL`:
    `DATABASE_URL=<prod-connection-string> npx tsx scripts/migrate.ts`
    This enables pgvector and creates the article embedding columns/index plus
-   the durable `article_audio` queue and weekly podcast tables. This is a
+   the durable `article_audio` queue, weekly podcast tables, and persistent
+   `rate_limits` table used by login and paid-search throttles. This is a
    production schema migration; do it before deploying code that expects the
    new tables.
 3. Backfill semantic-search vectors for articles that are already published:
@@ -12,9 +13,12 @@
 4. Add the Vercel Blob integration to the project; it injects `BLOB_READ_WRITE_TOKEN` automatically.
 5. Set env vars in Vercel: `DATABASE_URL`, `TEXT_MODEL`, `IMAGE_MODEL`,
    `EMBEDDING_MODEL`, `SPEECH_MODEL=openai/tts-1`, `SPEECH_VOICE=alloy`,
-   `CRON_SECRET`, `REVIEW_PASSWORD`, `APP_URL`, `TICK_BUDGET_MS`, and
-   `AUDIO_JOBS_PER_TICK=1`. AI Gateway authentication is provided by Vercel
+   `CRON_SECRET`, `REVIEW_PASSWORD`, `APP_SECRET`, `APP_URL`, `TICK_BUDGET_MS`,
+   `AUDIO_JOBS_PER_TICK=1`, and optionally `SEARCH_EMBEDDING_LIMIT_PER_HOUR`
+   (defaults to `100`). AI Gateway authentication is provided by Vercel
    OIDC; leave `FAKE_LLM` unset (defaults to real calls).
+   Generate `APP_SECRET` from at least 32 random bytes; it signs review sessions
+   and hashes rate-limit identifiers, and rotating it signs everyone out.
 6. Deploy. Confirm `vercel.json`'s daily cron shows up under the project's Cron Jobs tab.
 7. In the GitHub repo, add secrets `CRON_SECRET` (same value) and `APP_URL`
    (deployed URL). Confirm `.github/workflows/tick.yml` runs on schedule or via
