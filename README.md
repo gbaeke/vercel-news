@@ -74,10 +74,10 @@ are analyzed in timestamped sections so the model does not silently omit the
 middle of a video. The full transcript remains visible only on the review desk.
 
 For a local end-to-end test, start the app, submit a public YouTube URL on
-`/review`, then click **Run tick now**. If speech-to-text returns an asynchronous
-job, wait a minute and run the tick again. Keep `FAKE_LLM=1` if you want to test
-transcript ingestion and UI rendering without paying for article-generation
-model calls; Supadata transcript usage is still real.
+`/review`, then click **Check feeds & process**. If speech-to-text returns an
+asynchronous job, wait a minute and click it again. Keep `FAKE_LLM=1` if you
+want to test transcript ingestion and UI rendering without paying for
+article-generation model calls; Supadata transcript usage is still real.
 
 To compare the recommended voices with a short real sample:
 
