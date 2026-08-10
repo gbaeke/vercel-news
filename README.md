@@ -48,7 +48,7 @@ Built to the spec in [`spec/spec.md`](spec/spec.md).
 ## Local development
 
 ```bash
-cp .env.example .env.local            # fill in CRON_SECRET, REVIEW_PASSWORD
+cp .env.example .env.local            # fill in CRON_SECRET, REVIEW_PASSWORD, APP_SECRET
 docker compose -f docker-compose.test.yml up -d
 docker exec vercel-news-test-db-1 psql -U postgres -c "CREATE DATABASE vercel_news_dev"
 DATABASE_URL=postgres://postgres:postgres@localhost:5433/vercel_news_dev npx tsx scripts/migrate.ts
@@ -186,6 +186,6 @@ recipient configuration above.
 
 See [`docs/deployment.md`](docs/deployment.md). Short version: link the Vercel
 project, add the Neon integration and a public Blob store, set `CRON_SECRET` /
-`REVIEW_PASSWORD` / model variables, run the migration, deploy, and point the
+`REVIEW_PASSWORD` / `APP_SECRET` / model variables, run the migration, deploy, and point the
 `tick.yml` workflow at your deployment with repo secrets `CRON_SECRET` and
 `APP_URL`.

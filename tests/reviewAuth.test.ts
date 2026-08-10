@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { verifyReviewPassword } from '../lib/reviewAuth';
-import { reviewSessionToken } from '../lib/reviewCookie';
+import {
+  REVIEW_SESSION_MAX_AGE_SECONDS,
+  reviewSessionToken,
+  verifyReviewSessionToken,
+} from '../lib/reviewCookie';
 
 describe('verifyReviewPassword', () => {
   it('accepts the correct password', () => {
@@ -15,15 +19,30 @@ describe('verifyReviewPassword', () => {
 });
 
 describe('reviewSessionToken', () => {
-  it('is deterministic, hex, and never contains the password', async () => {
-    const a = await reviewSessionToken('correct-horse');
-    const b = await reviewSessionToken('correct-horse');
+  it('is deterministic for a fixed expiry and never contains either secret', async () => {
+    const a = await reviewSessionToken('correct-horse', 'independent-key', 2_000_000_000);
+    const b = await reviewSessionToken('correct-horse', 'independent-key', 2_000_000_000);
     expect(a).toBe(b);
-    expect(a).toMatch(/^[0-9a-f]{64}$/);
+    expect(a).toMatch(/^v1\.2000000000\.[0-9a-f]{64}$/);
     expect(a).not.toContain('correct-horse');
+    expect(a).not.toContain('independent-key');
   });
 
-  it('differs for different passwords', async () => {
-    expect(await reviewSessionToken('one')).not.toBe(await reviewSessionToken('two'));
+  it('verifies only before expiry with the current password and signing key', async () => {
+    const token = await reviewSessionToken('one', 'signing-key', 2_000_000_000);
+    expect(await verifyReviewSessionToken(token, 'one', 'signing-key', 1_999_999_999)).toBe(true);
+    expect(await verifyReviewSessionToken(token, 'two', 'signing-key', 1_999_999_999)).toBe(false);
+    expect(await verifyReviewSessionToken(token, 'one', 'other-key', 1_999_999_999)).toBe(false);
+    expect(await verifyReviewSessionToken(token, 'one', 'signing-key', 2_000_000_000)).toBe(false);
+  });
+
+  it('rejects tokens beyond the configured session lifetime', async () => {
+    const now = 1_800_000_000;
+    const token = await reviewSessionToken(
+      'one',
+      'signing-key',
+      now + REVIEW_SESSION_MAX_AGE_SECONDS + 1
+    );
+    expect(await verifyReviewSessionToken(token, 'one', 'signing-key', now)).toBe(false);
   });
 });

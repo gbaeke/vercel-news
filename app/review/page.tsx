@@ -5,6 +5,7 @@ import { runTickNow } from './[id]/actions';
 import { submitStoryUrl } from './actions';
 import { SubmitButton } from './submit-button';
 import { RefreshButton } from './refresh-button';
+import { logout } from './login/actions';
 import { StatusChip } from '../ui';
 import type { Article } from '../../lib/types';
 
@@ -25,8 +26,9 @@ const GROUPS = [
 export default async function ReviewListPage({
   searchParams,
 }: {
-  searchParams: { notice?: string; error?: string };
+  searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
+  const params = await searchParams;
   const articles = await query<Article>(`SELECT * FROM articles ORDER BY updated_at DESC LIMIT 200`);
 
   return (
@@ -42,6 +44,9 @@ export default async function ReviewListPage({
           <Link href="/review/settings" className="btn">
             Settings
           </Link>
+          <form action={logout}>
+            <button type="submit" className="btn">Sign out</button>
+          </form>
           <RefreshButton />
           <form action={runTickNow} className="desk-actions__wide">
             <SubmitButton
@@ -52,8 +57,8 @@ export default async function ReviewListPage({
         </div>
       </header>
 
-      {searchParams.error && <p className="error-note">{searchParams.error}</p>}
-      {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
+      {params.error && <p className="error-note">{params.error}</p>}
+      {params.notice && <p className="notice-note">{params.notice}</p>}
 
       <section>
         <h2 className="section-head">Submit a story</h2>

@@ -275,6 +275,16 @@ CREATE TABLE IF NOT EXISTS feeds (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Persistent, privacy-preserving fixed-window throttles for sensitive and
+-- billable public operations. Callers store only an HMAC of the requester's
+-- network identifier, never the address itself.
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key_hash          TEXT PRIMARY KEY,
+  attempts          INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  window_started_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rate_limits_window_idx ON rate_limits (window_started_at);
+
 INSERT INTO feeds (name, url)
 SELECT v.name, v.url FROM (VALUES
   ('openai', 'https://openai.com/news/rss.xml'),

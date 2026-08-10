@@ -17,8 +17,9 @@ export const dynamic = 'force-dynamic';
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: { notice?: string; error?: string };
+  searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
+  const params = await searchParams;
   const [tags, feeds] = await Promise.all([getTagConfigs(), getFeeds()]);
   const personas = getPersonas();
 
@@ -38,8 +39,8 @@ export default async function SettingsPage({
         </div>
       </header>
 
-      {searchParams.error && <p className="error-note">{searchParams.error}</p>}
-      {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
+      {params.error && <p className="error-note">{params.error}</p>}
+      {params.notice && <p className="notice-note">{params.notice}</p>}
 
       <section>
         <h2 className="section-head">Tags ({tags.length})</h2>

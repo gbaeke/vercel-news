@@ -79,10 +79,11 @@ export default async function ReviewDetailPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams: { notice?: string; error?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ notice?: string; error?: string }>;
 }) {
-  const id = parseArticleId(params.id);
+  const [{ id: rawId }, feedback] = await Promise.all([params, searchParams]);
+  const id = parseArticleId(rawId);
   if (id === null) return <NotFoundState />;
 
   const [[article], [audio]] = await Promise.all([
@@ -120,8 +121,8 @@ export default async function ReviewDetailPage({
 
       <Tracker article={article} />
 
-      {searchParams.error && <p className="error-note">{searchParams.error}</p>}
-      {searchParams.notice && <p className="notice-note">{searchParams.notice}</p>}
+      {feedback.error && <p className="error-note">{feedback.error}</p>}
+      {feedback.notice && <p className="notice-note">{feedback.notice}</p>}
 
       {article.error && (
         <p className="error-note">

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { submitManualStory } from '../../lib/manualSubmission';
+import { requireReviewSession } from '../../lib/reviewSession';
 
 const MAX_FEEDBACK_MESSAGE_LENGTH = 1_500;
 
@@ -14,6 +15,7 @@ function feedbackUrl(path: string, kind: 'notice' | 'error', message: string): s
 }
 
 export async function submitStoryUrl(formData: FormData) {
+  await requireReviewSession();
   let result: Awaited<ReturnType<typeof submitManualStory>>;
   try {
     result = await submitManualStory(formData.get('url'));

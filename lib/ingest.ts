@@ -5,6 +5,7 @@ import { htmlToText } from './text';
 import { enqueueArticle } from './articleQueue';
 import { sendRssFirstReviewEmail } from './notify';
 import type { Article } from './types';
+import { parsePublicHttpUrl, safeFetchText } from './safeFetch';
 
 export interface IngestDeps {
   fetchFeedXml?: (url: string) => Promise<string>;
@@ -12,12 +13,20 @@ export interface IngestDeps {
 }
 
 async function defaultFetchFeedXml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)' },
-    signal: AbortSignal.timeout(10_000),
+  const res = await safeFetchText(url, {
+    userAgent: 'Mozilla/5.0 (compatible; PersonalNewsroom/1.0)',
+    timeoutMs: 10_000,
+    maxBytes: 2 * 1024 * 1024,
+    allowedContentTypes: [
+      'application/rss+xml',
+      'application/atom+xml',
+      'application/xml',
+      'text/xml',
+      'text/plain',
+    ],
   });
   if (!res.ok) throw new Error(`feed fetch returned ${res.status}`);
-  return res.text();
+  return res.text;
 }
 
 type FeedItem = { link?: string };
@@ -76,10 +85,17 @@ export async function ingestFeeds(deps: IngestDeps = {}): Promise<IngestFeedResu
 
     for (const item of toInsert.slice().reverse()) {
       if (!item.link) continue;
+      let itemUrl: string;
+      try {
+        itemUrl = parsePublicHttpUrl(item.link, 'RSS item URL').toString();
+      } catch (error) {
+        console.log(`[ingest] ${feed.name}: skipped unsafe item URL (${(error as Error).message})`);
+        continue;
+      }
       const provisional = item.contentSnippet ?? (item.content ? htmlToText(item.content) : null);
       const result = await enqueueArticle({
         sourceFeed: feed.name,
-        url: item.link,
+        url: itemUrl,
         title: item.title ?? null,
         content: provisional,
         requiresRssApproval: true,

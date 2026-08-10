@@ -6,6 +6,8 @@ on:
     - cron: '30 6 * * 1'
   workflow_dispatch: {}
 
+permissions: {}
+
 concurrency:
   group: cleanup-declined-articles
   cancel-in-progress: false
@@ -13,9 +15,12 @@ concurrency:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Delete declined articles and orphaned thumbnails
         run: |
-          curl --fail-with-body --retry 3 --retry-all-errors -X POST \
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 330 \
+            --retry 3 --retry-all-errors -X POST \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ secrets.APP_URL }}/api/cleanup-declined"

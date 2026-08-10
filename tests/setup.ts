@@ -4,13 +4,14 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.test' });
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 process.env.FAKE_LLM = '1';
+process.env.APP_SECRET = 'test-app-secret-with-at-least-32-bytes';
 
 import { getPool } from '../lib/db';
 
 beforeEach(async () => {
   const pool = getPool();
   await pool.query(
-    'TRUNCATE weekly_episodes, articles, feed_state, deleted_urls RESTART IDENTITY CASCADE'
+    'TRUNCATE weekly_episodes, articles, feed_state, deleted_urls, rate_limits RESTART IDENTITY CASCADE'
   );
   // Reset tags/feeds to the seed defaults so every test starts from a known config.
   await pool.query('TRUNCATE tags, feeds');
