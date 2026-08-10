@@ -405,7 +405,7 @@ export function renderNewsletterHtml(
 <style>
   body{margin:0;background:#F4F0E8;color:#191713;font-family:Newsreader,Georgia,serif}
   a:hover{color:#C8361E!important}
-  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.header-meta{display:block!important}.header-date{display:block!important;margin-top:6px!important}.footer-copy{display:block!important;max-width:none!important;margin-top:14px!important;text-align:left!important;white-space:normal!important}.story-desktop{display:none!important}.story-mobile{display:table!important;width:100%!important}.wordmark{font-size:52px!important}}
+  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.header-meta{display:block!important}.header-date{display:block!important;margin-top:6px!important}.footer-brand,.footer-copy{display:block!important;width:100%!important}.footer-copy{max-width:none!important;padding-top:14px!important;text-align:left!important;white-space:normal!important}.story-desktop{display:none!important}.story-mobile{display:table!important;width:100%!important}.wordmark{font-size:52px!important}}
 </style></head>
 <body style="margin:0;background:#F4F0E8;background-image:radial-gradient(rgba(25,23,19,.035) 1px,transparent 1px);background-size:5px 5px;">
   <div class="email" style="max-width:760px;margin:0 auto;padding:0 54px 44px;background:#FDFBF6;">
@@ -424,7 +424,7 @@ export function renderNewsletterHtml(
       <p style="margin:0;color:#3B372F;font:17px/1.5 Newsreader,Georgia,serif;">${escapeHtml(draft.closing)}</p>
     </section>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;"><tbody>${storyHtml}</tbody></table>
-    <footer style="display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-top:34px;padding-top:18px;border-top:3px solid #191713;"><div style="font:800 22px/1 Newsreader,Georgia,serif;letter-spacing:-.02em;">The AI <em style="font-style:normal;font-weight:400;color:#C8361E;">Wire</em></div><div class="footer-copy" style="max-width:none;color:#6B6459;font:9px/1.55 'IBM Plex Mono',monospace;letter-spacing:.08em;text-align:right;text-transform:uppercase;white-space:nowrap;">End of transmission · human-reviewed · <span style="white-space:nowrap;">${escapeHtml(formatCalendarDate(window.weekEnding, timeZone))}</span></div></footer>
+    <footer style="margin-top:34px;padding-top:18px;border-top:3px solid #191713;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;"><tbody><tr><td class="footer-brand" valign="baseline" style="font:800 22px/1 Newsreader,Georgia,serif;letter-spacing:-.02em;">The AI <em style="font-style:normal;font-weight:400;color:#C8361E;">Wire</em></td><td class="footer-copy" align="right" valign="baseline" style="max-width:none;color:#6B6459;font:9px/1.55 'IBM Plex Mono',monospace;letter-spacing:.08em;text-align:right;text-transform:uppercase;white-space:nowrap;">End of transmission · human-reviewed · <span style="white-space:nowrap;">${escapeHtml(formatCalendarDate(window.weekEnding, timeZone))}</span></td></tr></tbody></table></footer>
   </div>
 </body></html>`;
 }

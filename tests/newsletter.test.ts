@@ -159,7 +159,9 @@ describe('newsletter drafting and rendering', () => {
     expect(html).toContain('.header-date{display:block!important;margin-top:6px!important}');
     expect(html).not.toContain('class="tagline"');
     expect(html).not.toContain('Machine-drafted, human-approved AI industry news.');
-    expect(html).toContain('class="footer-copy" style="max-width:none;');
+    expect(html).toContain('role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;"');
+    expect(html).toContain('class="footer-copy" align="right" valign="baseline"');
+    expect(html).toContain('.footer-brand,.footer-copy{display:block!important;width:100%!important}');
     expect(html).toContain('white-space:nowrap;">9 Aug 2026</span>');
     expect(html).toContain('https://news.example.com/articles/article-1');
     expect(html).toContain('https://blob.example.com/one.png');
