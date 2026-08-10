@@ -153,6 +153,10 @@ describe('newsletter drafting and rendering', () => {
     );
     expect(html).toContain('The week on the wire &lt;carefully&gt;');
     expect(html).toContain('3 Aug 2026 – 9 Aug 2026');
+    expect(html).toContain('width:72px;height:3px;margin-bottom:24px;background-color:#C8361E');
+    expect(html).not.toContain('border-top:3px solid #191713;border-bottom:1px solid #191713');
+    expect(html).toContain('class="header-date" style="flex:0 0 auto;white-space:nowrap;"');
+    expect(html).toContain('.header-date{display:block!important;margin-top:6px!important}');
     expect(html).toContain('https://news.example.com/articles/article-1');
     expect(html).toContain('https://blob.example.com/one.png');
     expect(html).not.toContain('data:image');

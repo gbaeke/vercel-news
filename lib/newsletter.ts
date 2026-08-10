@@ -390,12 +390,13 @@ export function renderNewsletterHtml(
 <style>
   body{margin:0;background:#F4F0E8;color:#191713;font-family:Newsreader,Georgia,serif}
   a:hover{color:#C8361E!important}
-  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.masthead{display:block!important}.tagline{margin-top:16px!important}.story-image{display:none!important}.wordmark{font-size:52px!important}}
+  @media(max-width:650px){.email{padding-left:20px!important;padding-right:20px!important}.header-meta{display:block!important}.header-date{display:block!important;margin-top:6px!important}.masthead{display:block!important}.tagline{margin-top:16px!important}.story-image{display:none!important}.wordmark{font-size:52px!important}}
 </style></head>
 <body style="margin:0;background:#F4F0E8;background-image:radial-gradient(rgba(25,23,19,.035) 1px,transparent 1px);background-size:5px 5px;">
   <div class="email" style="max-width:760px;margin:0 auto;padding:0 54px 44px;background:#FDFBF6;">
-    <header style="padding:27px 0 22px;border-top:3px solid #191713;border-bottom:1px solid #191713;">
-      <div style="display:flex;justify-content:space-between;gap:14px;font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#6B6459;"><span style="color:#C8361E;">● Weekly dispatch</span><span>${escapeHtml(periodLabel)}</span></div>
+    <header style="padding:0 0 22px;border-bottom:1px solid #191713;">
+      <div aria-hidden="true" style="width:72px;height:3px;margin-bottom:24px;background-color:#C8361E;font-size:0;line-height:0;">&nbsp;</div>
+      <div class="header-meta" style="display:flex;justify-content:space-between;gap:14px;font:500 10px/1.4 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#6B6459;"><span style="color:#C8361E;">● Weekly dispatch</span><span class="header-date" style="flex:0 0 auto;white-space:nowrap;">${escapeHtml(periodLabel)}</span></div>
       <div class="masthead" style="display:flex;align-items:baseline;justify-content:space-between;gap:18px;margin-top:22px;"><div class="wordmark" style="font:800 76px/.88 Newsreader,Georgia,serif;letter-spacing:-.04em;white-space:nowrap;">The AI <em style="font-style:normal;font-weight:400;color:#C8361E;">Wire</em></div><p class="tagline" style="max-width:220px;margin:0;color:#6B6459;font:11px/1.55 'IBM Plex Mono',monospace;">Machine-drafted, human-approved AI industry news.</p></div>
     </header>
     <section style="padding:28px 0 24px;border-bottom:1px solid rgba(25,23,19,.25);">
