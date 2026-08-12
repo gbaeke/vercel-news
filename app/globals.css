@@ -1174,6 +1174,10 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
 }
 
+@media (min-width: 761px) {
+  .wire-masthead { align-items: center; }
+}
+
 /* responsive (not in the handoff, which is desktop-only; degrade gracefully) */
 @media (max-width: 760px) {
   .wire-wrap { padding: 0 20px 64px; }
