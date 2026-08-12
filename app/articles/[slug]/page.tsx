@@ -10,6 +10,10 @@ import { formatDate } from '../../../lib/format';
 import { renderMarkdown } from '../../../lib/markdown';
 import { WireShell, WireTopbar, WireFooter, Wordmark, pad2, pad3 } from '../../wire';
 import { YouTubeEmbed } from '../../youtube-embed';
+import { DiagramRenderer } from '../../diagram-renderer';
+import { getApprovedArticleDiagram } from '../../../lib/articleDiagrams';
+import { splitArticleHtmlAfterParagraph } from '../../../lib/articleContentPlacement';
+import type { ArticleDiagram } from '../../../lib/types';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -47,6 +51,35 @@ function visibleArticleHtml(markdown: string | null): string {
   return renderMarkdown(withoutLegacyAppendix);
 }
 
+function ArticleDiagramFigure({
+  diagram,
+  figureNumber,
+  inline = false,
+}: {
+  diagram: ArticleDiagram;
+  figureNumber: number;
+  inline?: boolean;
+}) {
+  return (
+    <figure className={`wire-explainer${inline ? ' wire-explainer--inline' : ''}`}>
+      <div className="wire-explainer-head">
+        <span className="mono wire-explainer-kicker">Visual explainer</span>
+        <h2>{diagram.title}</h2>
+      </div>
+      <DiagramRenderer
+        source={diagram.mermaid_source}
+        look={diagram.look}
+        label={diagram.alt_text}
+        className="wire-explainer-diagram"
+      />
+      <figcaption className="mono wire-figcaption">
+        <span>{diagram.caption}</span>
+        <span>FIG. {String(figureNumber).padStart(2, '0')}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const article = await getPublishedArticleBySlug(slug);
@@ -57,11 +90,20 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   // Dispatch numbers count up from the oldest published story.
   const all = await getPublishedArticles();
-  const audio = await getReadyArticleAudio(article.id);
+  const [audio, diagram] = await Promise.all([
+    getReadyArticleAudio(article.id),
+    getApprovedArticleDiagram(article.id),
+  ]);
   const idx = all.findIndex((a) => a.id === article.id);
   const dispatchNo = idx >= 0 ? all.length - idx : article.id;
   const more = all.filter((a) => a.id !== article.id).slice(0, 4);
   const filed = formatDate(article.published_at ?? article.created_at);
+  const articleHtml = visibleArticleHtml(article.content_md);
+  const diagramFigureNumber = !article.youtube_video_id && article.thumbnail_url ? 2 : 1;
+  const diagramBeforeBody = Boolean(diagram && diagram.placement_after_paragraph === 0);
+  const contentSplit = diagram && diagram.placement_after_paragraph > 0
+    ? splitArticleHtmlAfterParagraph(articleHtml, diagram.placement_after_paragraph)
+    : { beforeHtml: articleHtml, afterHtml: '' };
 
   return (
     <WireShell>
@@ -109,8 +151,32 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </section>
         )}
 
+        {diagram && diagramBeforeBody && (
+          <ArticleDiagramFigure diagram={diagram} figureNumber={diagramFigureNumber} />
+        )}
+
         <div className="wire-body">
-          <div className="wire-body-inner" dangerouslySetInnerHTML={{ __html: visibleArticleHtml(article.content_md) }} />
+          <div className="wire-body-inner">
+            {contentSplit.beforeHtml && (
+              <div
+                className="wire-body-segment"
+                dangerouslySetInnerHTML={{ __html: contentSplit.beforeHtml }}
+              />
+            )}
+            {diagram && !diagramBeforeBody && (
+              <ArticleDiagramFigure
+                diagram={diagram}
+                figureNumber={diagramFigureNumber}
+                inline
+              />
+            )}
+            {contentSplit.afterHtml && (
+              <div
+                className="wire-body-segment"
+                dangerouslySetInnerHTML={{ __html: contentSplit.afterHtml }}
+              />
+            )}
+          </div>
           <p className="mono wire-source">
             <a href={article.trigger_url} target="_blank" rel="noopener noreferrer" className="wire-readlink">
               {article.youtube_video_id ? 'Watch the original video' : `Read the original at ${sourceHost(article.trigger_url)}`} →

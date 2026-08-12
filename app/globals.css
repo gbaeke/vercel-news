@@ -588,6 +588,118 @@ img { max-width: 100%; display: block; }
   overflow-y: auto;
 }
 
+/* ——— review desk: article diagrams ——— */
+
+.diagram-workbench {
+  max-width: 46rem;
+  margin-block: 2rem;
+  border: 1.5px solid var(--line);
+  background: var(--paper-2);
+}
+.diagram-workbench > summary {
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  color: var(--riso);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.diagram-workbench[open] > summary { border-bottom: 1px solid var(--line); }
+.diagram-workbench-inner { display: grid; gap: 1.25rem; padding: 1.25rem; }
+.diagram-workbench-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+.diagram-workbench-heading .meta { margin: 0 0 0.25rem; }
+.diagram-workbench-heading h2 { margin: 0; font-size: 1.35rem; line-height: 1.2; }
+.diagram-review-preview { margin: 0; }
+.diagram-review-preview figcaption {
+  margin-top: 0.6rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+.diagram-generator-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.diagram-field { display: grid; gap: 0.35rem; min-width: 0; }
+.diagram-field--wide { grid-column: 1 / -1; }
+.diagram-field > span {
+  color: var(--ink-soft);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.diagram-field input,
+.diagram-field select,
+.diagram-field textarea {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.6rem;
+  font: inherit;
+}
+.diagram-field textarea { min-height: 6.5rem; resize: vertical; }
+.diagram-field select { font-family: var(--font-mono), monospace; font-size: 0.78rem; }
+.diagram-placement-field { max-width: 19rem; }
+.diagram-form-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.diagram-form-actions .meta { flex: 1; min-width: 14rem; margin: 0; text-transform: none; }
+.diagram-placement-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 19rem) auto minmax(12rem, 1fr);
+  align-items: end;
+  gap: 0.8rem;
+  padding-block: 1rem;
+  border-block: 1px solid var(--line);
+}
+.diagram-placement-form .meta { margin: 0; align-self: center; text-transform: none; }
+.diagram-source-editor > summary {
+  cursor: pointer;
+  color: var(--riso);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.diagram-edit-form { display: grid; gap: 0.8rem; margin-top: 1rem; }
+.diagram-field .diagram-source-input {
+  min-height: 16rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+.diagram-approval-row { display: flex; gap: 0.7rem; flex-wrap: wrap; padding-top: 0.25rem; }
+
+.article-diagram-renderer {
+  width: 100%;
+  min-height: 16rem;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 1rem;
+}
+.article-diagram-svg { width: 100%; }
+.article-diagram-svg svg { display: block; width: 100%; height: auto; max-height: 42rem; margin: auto; }
+.article-diagram-loading,
+.article-diagram-error {
+  margin: 0;
+  color: var(--ink-soft);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+  text-align: center;
+}
+.article-diagram-error { color: var(--bad); }
+
 /* ——— login ——— */
 
 .login-wrap {
@@ -1036,6 +1148,30 @@ img { max-width: 100%; display: block; }
 .wire-audio-label { margin: 0; color: var(--ink); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
 .wire-audio-note { margin: 5px 0 0; color: var(--mut); font-size: 14px; }
 .wire-audio audio { display: block; width: 100%; }
+.wire-explainer {
+  max-width: 1020px;
+  margin: 48px 0 0;
+  padding: 28px;
+  border: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+.wire-explainer--inline { width: 100%; margin: 22px 0; }
+.wire-explainer-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 24px; }
+.wire-explainer-kicker {
+  flex: 0 0 auto;
+  color: var(--acc);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.wire-explainer h2 { margin: 0; font-size: 28px; line-height: 1.15; }
+.wire-explainer .article-diagram-renderer {
+  min-height: 20rem;
+  border-color: var(--rule);
+  background: var(--paper);
+}
+.wire-explainer .wire-figcaption { gap: 24px; }
+.wire-explainer .wire-figcaption span:first-child { max-width: 72ch; }
 .wire-body {
   max-width: 840px;
   margin: 56px 0 0;
@@ -1049,8 +1185,9 @@ img { max-width: 100%; display: block; }
 .wire-body p { margin: 0; }
 .wire-body h2, .wire-body h3 { margin: 12px 0 0; color: var(--ink); line-height: 1.15; letter-spacing: -0.015em; }
 .wire-body ul, .wire-body ol { margin: 0; padding-left: 1.4em; }
-.wire-body-inner { display: flex; flex-direction: column; gap: 26px; }
-.wire-body-inner > p:first-of-type::first-letter {
+.wire-body-inner,
+.wire-body-segment { display: flex; flex-direction: column; gap: 26px; }
+.wire-body-segment:first-child > p:first-of-type::first-letter {
   float: left;
   font-size: 64px;
   line-height: 0.82;
@@ -1181,6 +1318,10 @@ img { max-width: 100%; display: block; }
 /* responsive (not in the handoff, which is desktop-only; degrade gracefully) */
 @media (max-width: 760px) {
   .wire-wrap { padding: 0 20px 64px; }
+  .wire-explainer { padding: 18px; }
+  .wire-explainer-head { display: grid; gap: 6px; }
+  .wire-explainer h2 { font-size: 23px; }
+  .wire-explainer .article-diagram-renderer { min-height: 14rem; padding: 8px; }
   .wire-search { align-items: flex-end; gap: 10px; }
   .wire-search-label { display: none; }
   .wire-search-control { flex: 1 1 auto; }
@@ -1190,4 +1331,10 @@ img { max-width: 100%; display: block; }
   .wire-row .thumb-cell { grid-column: 2; }
   /* Fit a few more columns of code on a phone before scrolling starts. */
   .wire-body pre { font-size: 12.5px; padding: 14px; }
+}
+
+@media (max-width: 720px) {
+  .diagram-generator-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .diagram-placement-form { grid-template-columns: 1fr; align-items: stretch; }
+  .diagram-placement-form .btn { width: 100%; }
 }

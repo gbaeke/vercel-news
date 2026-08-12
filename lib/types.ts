@@ -76,6 +76,37 @@ export interface ArticleAudio {
   updated_at: string;
 }
 
+export type ArticleDiagramType =
+  | 'auto'
+  | 'flowchart'
+  | 'sequence'
+  | 'relationship'
+  | 'architecture';
+export type ArticleDiagramDirection = 'auto' | 'horizontal' | 'vertical';
+export type ArticleDiagramDetail = 'simple' | 'standard' | 'detailed';
+export type ArticleDiagramLook = 'classic' | 'handDrawn';
+export type ArticleDiagramStatus = 'draft' | 'approved';
+
+export interface ArticleDiagram {
+  article_id: number;
+  article_version: number;
+  status: ArticleDiagramStatus;
+  instructions: string;
+  diagram_type: ArticleDiagramType;
+  direction: ArticleDiagramDirection;
+  detail: ArticleDiagramDetail;
+  look: ArticleDiagramLook;
+  placement_after_paragraph: number;
+  title: string;
+  caption: string;
+  alt_text: string;
+  mermaid_source: string;
+  generated_at: string;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type WeeklyEpisodeStatus =
   | 'preparing'
   | 'scripted'

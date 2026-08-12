@@ -6,11 +6,21 @@ import type { Article, ArticleAudio } from '../../../lib/types';
 import { parseArticleId } from '../../../lib/reviewInput';
 import { SubmitButton } from '../submit-button';
 import { YouTubeEmbed } from '../../youtube-embed';
+import { DiagramRenderer } from '../../diagram-renderer';
+import { getArticleDiagram } from '../../../lib/articleDiagrams';
+import { countArticleParagraphs } from '../../../lib/articleContentPlacement';
+import { renderMarkdown } from '../../../lib/markdown';
+import type { ArticleDiagram } from '../../../lib/types';
 import {
   approveArticle,
+  approveArticleDiagramAction,
+  deleteArticleDiagramAction,
+  generateArticleDiagramAction,
   requestRewrite,
   requestNewImage,
   refreshArticleSource,
+  saveArticleDiagramAction,
+  updateArticleDiagramPlacementAction,
   declineArticle,
   retryArticle,
   unpublishArticle,
@@ -76,6 +86,224 @@ function NotFoundState() {
   );
 }
 
+function DiagramPlacementOptions({
+  paragraphCount,
+  currentPlacement,
+}: {
+  paragraphCount: number;
+  currentPlacement: number;
+}) {
+  const afterArticleValue = Math.max(
+    paragraphCount + 1,
+    currentPlacement > paragraphCount ? currentPlacement : 0
+  );
+  return (
+    <>
+      <option value="0">Before article text</option>
+      {Array.from({ length: paragraphCount }, (_, index) => index + 1).map((paragraph) => (
+        <option key={paragraph} value={paragraph}>After paragraph {paragraph}</option>
+      ))}
+      <option value={afterArticleValue}>After article text</option>
+    </>
+  );
+}
+
+function DiagramWorkbench({
+  article,
+  diagram,
+  paragraphCount,
+}: {
+  article: Article;
+  diagram: ArticleDiagram | null;
+  paragraphCount: number;
+}) {
+  const generate = generateArticleDiagramAction.bind(null, article.id);
+  const save = saveArticleDiagramAction.bind(null, article.id);
+  const updatePlacement = updateArticleDiagramPlacementAction.bind(null, article.id);
+  const approve = approveArticleDiagramAction.bind(null, article.id);
+  const remove = deleteArticleDiagramAction.bind(null, article.id);
+  const stale = Boolean(diagram && diagram.article_version !== article.version);
+
+  return (
+    <details className="diagram-workbench" open={diagram ? true : undefined}>
+      <summary>{diagram ? 'Explainer diagram' : 'Add explainer diagram'}</summary>
+      <div className="diagram-workbench-inner">
+        <div className="diagram-workbench-heading">
+          <div>
+            <p className="meta">Visual explainer · article version {article.version}</p>
+            <h2>{diagram?.title ?? 'Create a diagram from this article'}</h2>
+          </div>
+          {diagram && (
+            <span className={`chip ${diagram.status === 'approved' ? 'chip--live' : 'chip--review'}`}>
+              {diagram.status}
+            </span>
+          )}
+        </div>
+
+        {stale && (
+          <p className="error-note">
+            This diagram was generated for article version {diagram?.article_version}. Regenerate it before approval.
+          </p>
+        )}
+
+        {diagram && (
+          <figure className="diagram-review-preview">
+            <DiagramRenderer source={diagram.mermaid_source} look={diagram.look} label={diagram.alt_text} />
+            <figcaption>{diagram.caption}</figcaption>
+          </figure>
+        )}
+
+        <form action={generate} className="diagram-generator-form">
+          <label className="diagram-field diagram-field--wide">
+            <span>What should the diagram explain?</span>
+            <textarea
+              name="instructions"
+              defaultValue={diagram?.instructions ?? ''}
+              placeholder="For example: Show how a request moves through the model gateway, including the fallback path."
+              maxLength={1500}
+              required
+            />
+          </label>
+          <label className="diagram-field">
+            <span>Type</span>
+            <select name="diagram_type" defaultValue={diagram?.diagram_type ?? 'auto'}>
+              <option value="auto">Auto</option>
+              <option value="flowchart">Flowchart</option>
+              <option value="sequence">Sequence</option>
+              <option value="relationship">Relationship map</option>
+              <option value="architecture">Architecture</option>
+            </select>
+          </label>
+          <label className="diagram-field">
+            <span>Direction</span>
+            <select name="direction" defaultValue={diagram?.direction ?? 'auto'}>
+              <option value="auto">Auto</option>
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </label>
+          <label className="diagram-field">
+            <span>Detail</span>
+            <select name="detail" defaultValue={diagram?.detail ?? 'standard'}>
+              <option value="simple">Simple</option>
+              <option value="standard">Standard</option>
+              <option value="detailed">Detailed</option>
+            </select>
+          </label>
+          <label className="diagram-field">
+            <span>Look</span>
+            <select name="look" defaultValue={diagram?.look ?? 'classic'}>
+              <option value="classic">Wire classic</option>
+              <option value="handDrawn">Hand-drawn</option>
+            </select>
+          </label>
+          <label className="diagram-field diagram-field--wide diagram-placement-field">
+            <span>Placement</span>
+            <select
+              name="placement_after_paragraph"
+              defaultValue={diagram?.placement_after_paragraph ?? 0}
+            >
+              <DiagramPlacementOptions
+                paragraphCount={paragraphCount}
+                currentPlacement={diagram?.placement_after_paragraph ?? 0}
+              />
+            </select>
+          </label>
+          <div className="diagram-form-actions diagram-field--wide">
+            <SubmitButton
+              label={diagram ? 'Regenerate diagram' : 'Generate diagram'}
+              pendingLabel="Generating diagram…"
+              className="btn btn--primary"
+            />
+            <p className="meta">Generation creates a draft. Nothing appears publicly until you approve it.</p>
+          </div>
+        </form>
+
+        {diagram && (
+          <form action={updatePlacement} className="diagram-placement-form">
+            <label className="diagram-field">
+              <span>Public position</span>
+              <select
+                name="placement_after_paragraph"
+                defaultValue={diagram.placement_after_paragraph}
+              >
+                <DiagramPlacementOptions
+                  paragraphCount={paragraphCount}
+                  currentPlacement={diagram.placement_after_paragraph}
+                />
+              </select>
+            </label>
+            <SubmitButton
+              label="Update placement"
+              pendingLabel="Updating placement…"
+              className="btn"
+            />
+            <p className="meta">Changing placement returns the diagram to draft for layout review.</p>
+          </form>
+        )}
+
+        {diagram && (
+          <details className="diagram-source-editor">
+            <summary>Edit diagram source and copy</summary>
+            <form action={save} className="diagram-edit-form">
+              <input type="hidden" name="instructions" value={diagram.instructions} />
+              <input type="hidden" name="diagram_type" value={diagram.diagram_type} />
+              <input type="hidden" name="direction" value={diagram.direction} />
+              <input type="hidden" name="detail" value={diagram.detail} />
+              <input type="hidden" name="look" value={diagram.look} />
+              <input
+                type="hidden"
+                name="placement_after_paragraph"
+                value={diagram.placement_after_paragraph}
+              />
+              <label className="diagram-field">
+                <span>Title</span>
+                <input name="title" defaultValue={diagram.title} maxLength={120} required />
+              </label>
+              <label className="diagram-field">
+                <span>Caption</span>
+                <textarea name="caption" defaultValue={diagram.caption} maxLength={300} required />
+              </label>
+              <label className="diagram-field">
+                <span>Alt text</span>
+                <textarea name="alt_text" defaultValue={diagram.alt_text} maxLength={500} required />
+              </label>
+              <label className="diagram-field">
+                <span>Mermaid source</span>
+                <textarea
+                  className="diagram-source-input"
+                  name="mermaid_source"
+                  defaultValue={diagram.mermaid_source}
+                  maxLength={12000}
+                  spellCheck={false}
+                  required
+                />
+              </label>
+              <SubmitButton label="Save draft changes" pendingLabel="Saving diagram…" className="btn" />
+            </form>
+          </details>
+        )}
+
+        {diagram && (
+          <div className="diagram-approval-row">
+            <form action={approve}>
+              <SubmitButton
+                label={diagram.status === 'approved' ? 'Re-approve diagram' : 'Approve diagram'}
+                pendingLabel="Approving diagram…"
+                className="btn btn--primary"
+                disabled={stale}
+              />
+            </form>
+            <form action={remove}>
+              <SubmitButton label="Remove diagram" pendingLabel="Removing diagram…" className="btn btn--danger" />
+            </form>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
 export default async function ReviewDetailPage({
   params,
   searchParams,
@@ -87,14 +315,19 @@ export default async function ReviewDetailPage({
   const id = parseArticleId(rawId);
   if (id === null) return <NotFoundState />;
 
-  const [[article], [audio]] = await Promise.all([
+  const [[article], [audio], diagram] = await Promise.all([
     query<Article>(`SELECT * FROM articles WHERE id = $1`, [id]),
     query<ArticleAudio>(`SELECT * FROM article_audio WHERE article_id = $1`, [id]),
+    getArticleDiagram(id),
   ]);
 
   if (!article) {
     return <NotFoundState />;
   }
+
+  const paragraphCount = countArticleParagraphs(
+    article.content_html ?? renderMarkdown(article.content_md ?? '')
+  );
 
   const approve = approveArticle.bind(null, article.id);
   const image = requestNewImage.bind(null, article.id);
@@ -180,6 +413,13 @@ export default async function ReviewDetailPage({
               </p>
               <pre>{article.source_transcript}</pre>
             </details>
+          )}
+          {['in_review', 'rss_final_review', 'published'].includes(article.status) && (
+            <DiagramWorkbench
+              article={article}
+              diagram={diagram}
+              paragraphCount={paragraphCount}
+            />
           )}
         </article>
 

@@ -20,6 +20,17 @@ import {
 } from '../../../lib/reviewActions';
 import { parseArticleId, validateRewriteFeedback } from '../../../lib/reviewInput';
 import { requireReviewSession } from '../../../lib/reviewSession';
+import {
+  approveArticleDiagramById,
+  deleteArticleDiagramById,
+  generateArticleDiagramById,
+  parseArticleDiagramInput,
+  parseEditableArticleDiagram,
+  parsePlacementAfterParagraph,
+  saveArticleDiagramById,
+  updateArticleDiagramPlacementById,
+  type DiagramMutationResult,
+} from '../../../lib/articleDiagrams';
 
 type FeedbackKind = 'notice' | 'error';
 
@@ -153,6 +164,114 @@ export async function requestNewImage(rawId: number) {
   revalidatePath('/review');
   const failure = mutationFailureMessage(result);
   redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'New thumbnail requested.'));
+}
+
+function diagramFailureMessage(result: DiagramMutationResult): string | null {
+  return result.ok ? null : result.message;
+}
+
+export async function generateArticleDiagramAction(rawId: number, formData: FormData) {
+  await requireReviewSession();
+  const id = validArticleId(rawId);
+  let input: ReturnType<typeof parseArticleDiagramInput>;
+  try {
+    input = parseArticleDiagramInput(formData);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The diagram settings are invalid.';
+    redirect(feedbackUrl(articlePath(id), 'error', message));
+  }
+
+  let result: DiagramMutationResult;
+  try {
+    result = await generateArticleDiagramById(id, input);
+  } catch (error) {
+    logUnexpected('generate article diagram', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not generate the diagram. Try refining the instruction or try again.'));
+  }
+
+  revalidateArticleViews();
+  const failure = diagramFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Diagram draft generated. Review and approve it below.'));
+}
+
+export async function saveArticleDiagramAction(rawId: number, formData: FormData) {
+  await requireReviewSession();
+  const id = validArticleId(rawId);
+  let edited: ReturnType<typeof parseEditableArticleDiagram>;
+  try {
+    edited = parseEditableArticleDiagram(formData);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The diagram source is invalid.';
+    redirect(feedbackUrl(articlePath(id), 'error', message));
+  }
+
+  let result: DiagramMutationResult;
+  try {
+    result = await saveArticleDiagramById(id, edited);
+  } catch (error) {
+    logUnexpected('save article diagram', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not save the diagram right now. Please try again.'));
+  }
+
+  revalidateArticleViews();
+  const failure = diagramFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Diagram changes saved as a draft.'));
+}
+
+export async function updateArticleDiagramPlacementAction(rawId: number, formData: FormData) {
+  await requireReviewSession();
+  const id = validArticleId(rawId);
+  let placement: number;
+  try {
+    placement = parsePlacementAfterParagraph(formData.get('placement_after_paragraph'));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'The diagram placement is invalid.';
+    redirect(feedbackUrl(articlePath(id), 'error', message));
+  }
+
+  let result: DiagramMutationResult;
+  try {
+    result = await updateArticleDiagramPlacementById(id, placement);
+  } catch (error) {
+    logUnexpected('update article diagram placement', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not update the diagram placement right now.'));
+  }
+
+  revalidateArticleViews();
+  const failure = diagramFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Diagram placement updated. Review and approve the new layout.'));
+}
+
+export async function approveArticleDiagramAction(rawId: number) {
+  await requireReviewSession();
+  const id = validArticleId(rawId);
+  let result: DiagramMutationResult;
+  try {
+    result = await approveArticleDiagramById(id);
+  } catch (error) {
+    logUnexpected('approve article diagram', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not approve the diagram right now. Please try again.'));
+  }
+
+  revalidateArticleViews();
+  const failure = diagramFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Diagram approved. It will appear with the published article.'));
+}
+
+export async function deleteArticleDiagramAction(rawId: number) {
+  await requireReviewSession();
+  const id = validArticleId(rawId);
+  let result: DiagramMutationResult;
+  try {
+    result = await deleteArticleDiagramById(id);
+  } catch (error) {
+    logUnexpected('delete article diagram', { articleId: id }, error);
+    redirect(feedbackUrl(articlePath(id), 'error', 'Could not remove the diagram right now. Please try again.'));
+  }
+
+  revalidateArticleViews();
+  const failure = diagramFailureMessage(result);
+  redirect(feedbackUrl(articlePath(id), failure ? 'error' : 'notice', failure ?? 'Diagram removed.'));
 }
 
 export async function refreshArticleSource(rawId: number) {

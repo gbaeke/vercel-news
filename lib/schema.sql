@@ -128,6 +128,46 @@ CREATE INDEX IF NOT EXISTS article_audio_processing_idx
 ON article_audio (claimed_at)
 WHERE status = 'processing';
 
+-- A diagram is an independently reviewed editorial asset. Mermaid source stays
+-- editable on the Desk, while approval is tied to the exact article version so
+-- a later rewrite can never silently publish a stale explanation.
+CREATE TABLE IF NOT EXISTS article_diagrams (
+  article_id      INTEGER PRIMARY KEY REFERENCES articles(id) ON DELETE CASCADE,
+  article_version INTEGER NOT NULL CHECK (article_version > 0),
+  status          TEXT NOT NULL DEFAULT 'draft'
+                  CHECK (status IN ('draft', 'approved')),
+  instructions    TEXT NOT NULL,
+  diagram_type    TEXT NOT NULL
+                  CHECK (diagram_type IN ('auto', 'flowchart', 'sequence', 'relationship', 'architecture')),
+  direction       TEXT NOT NULL
+                  CHECK (direction IN ('auto', 'horizontal', 'vertical')),
+  detail          TEXT NOT NULL
+                  CHECK (detail IN ('simple', 'standard', 'detailed')),
+  look            TEXT NOT NULL
+                  CHECK (look IN ('classic', 'handDrawn')),
+  placement_after_paragraph INTEGER NOT NULL DEFAULT 0
+                  CHECK (placement_after_paragraph >= 0),
+  title           TEXT NOT NULL,
+  caption         TEXT NOT NULL,
+  alt_text        TEXT NOT NULL,
+  mermaid_source  TEXT NOT NULL,
+  generated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  approved_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Existing local/production databases may already have the first diagram MVP.
+-- Zero means before the article body; a value beyond the current paragraph
+-- count naturally means after the article body.
+ALTER TABLE article_diagrams
+ADD COLUMN IF NOT EXISTS placement_after_paragraph INTEGER NOT NULL DEFAULT 0
+CHECK (placement_after_paragraph >= 0);
+
+CREATE INDEX IF NOT EXISTS article_diagrams_approved_idx
+ON article_diagrams (article_id, article_version)
+WHERE status = 'approved';
+
 -- A long-form weekly review is separate from article narration: it combines
 -- several already-published articles, has a two-speaker script, and is rendered
 -- in resumable sections by the GitHub-hosted audio producer. Ready episodes are
