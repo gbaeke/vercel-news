@@ -60,6 +60,35 @@ npm run dev
 Set `FAKE_LLM=1` to run the whole pipeline with canned model outputs — the
 test suite (`npm test`) always runs this way and costs $0.
 
+### Send articles from a phone
+
+`POST /api/capture` lets a personal phone shortcut put the current web page
+straight into the manual article queue. Set `CAPTURE_TOKEN` to a random secret
+(for example, `openssl rand -hex 32`) in Vercel and redeploy before configuring
+the shortcut. This secret is independent from the Desk password and cron
+secret, so it can be rotated on its own if a device is lost.
+
+On iPhone or iPad, create a shortcut named **Send to AI Wire**:
+
+1. Enable **Show in Share Sheet** and limit its accepted input to URLs and
+   Safari webpages.
+2. Add **Get URLs from Shortcut Input**.
+3. Add **Get Contents of URL** with the URL
+   `https://<your-domain>/api/capture`, method **POST**, and a JSON request body
+   whose `url` field is the output of **Get URLs**.
+4. Add an `Authorization` header with the value `Bearer <CAPTURE_TOKEN>`.
+5. Read the `message` value from the returned dictionary and pass it to
+   **Show Notification**.
+
+You can then use **Share → Send to AI Wire** from Safari or another app. The
+endpoint returns `Queued as article #…` for a new URL and `Already queued…`
+for a duplicate. It accepts JSON, URL-encoded forms, and multipart forms.
+
+On Android or ChromeOS, install the site as an app. Its web manifest registers
+AI Wire as a share target; sharing a page to it opens a Desk-authenticated,
+prefilled confirmation screen. Web share-target support varies by browser, so
+the normal **Submit a story** form remains the fallback.
+
 ### YouTube article submissions
 
 Direct YouTube video URLs submitted on the review desk are canonicalized,

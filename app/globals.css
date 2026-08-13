@@ -559,6 +559,19 @@ img { max-width: 100%; display: block; }
   margin-block: 0.75rem 2rem;
   flex-wrap: wrap;
 }
+
+.shell--capture { max-width: 760px; }
+.capture-title {
+  margin: 0.35rem 0 0.5rem;
+  font-size: clamp(2rem, 8vw, 3.5rem);
+  line-height: 1;
+}
+.capture-source-title {
+  margin: 1.25rem 0 0;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+.capture-form { margin-top: 1.25rem; }
 .settings-input {
   border: 1.5px solid var(--line);
   background: var(--paper);

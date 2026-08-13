@@ -13,6 +13,15 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#F4F0E8',
     theme_color: '#F4F0E8',
+    share_target: {
+      action: '/review/capture',
+      method: 'GET',
+      params: {
+        title: 'title',
+        text: 'text',
+        url: 'url',
+      },
+    },
     icons: [
       { src: '/icon1', sizes: '512x512', type: 'image/png', purpose: 'any' },
       { src: '/apple-icon', sizes: '180x180', type: 'image/png' },
