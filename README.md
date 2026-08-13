@@ -60,7 +60,7 @@ npm run dev
 Set `FAKE_LLM=1` to run the whole pipeline with canned model outputs — the
 test suite (`npm test`) always runs this way and costs $0.
 
-### Send articles from a phone
+### Send articles from a phone or desktop
 
 `POST /api/capture` lets a personal phone shortcut put the current web page
 straight into the manual article queue. Set `CAPTURE_TOKEN` to a random secret
@@ -68,21 +68,69 @@ straight into the manual article queue. Set `CAPTURE_TOKEN` to a random secret
 the shortcut. This secret is independent from the Desk password and cron
 secret, so it can be rotated on its own if a device is lost.
 
-On iPhone or iPad, create a shortcut named **Send to AI Wire**:
+#### iPhone and iPad shortcut (current iOS)
 
-1. Enable **Show in Share Sheet** and limit its accepted input to URLs and
-   Safari webpages.
-2. Add **Get URLs from Shortcut Input**.
-3. Add **Get Contents of URL** with the URL
-   `https://<your-domain>/api/capture`, method **POST**, and a JSON request body
-   whose `url` field is the output of **Get URLs**.
-4. Add an `Authorization` header with the value `Bearer <CAPTURE_TOKEN>`.
-5. Read the `message` value from the returned dictionary and pass it to
-   **Show Notification**.
+Create a regular shortcut under **All Shortcuts**, not an automation:
 
-You can then use **Share → Send to AI Wire** from Safari or another app. The
-endpoint returns `Queued as article #…` for a new URL and `Already queued…`
-for a duplicate. It accepts JSON, URL-encoded forms, and multipart forms.
+1. Open **Shortcuts**, tap **+**, and rename the new shortcut **Send to AI
+   Wire**.
+2. In the shortcut editor, dismiss the keyboard if necessary and tap the
+   circular **ⓘ** button in the bottom toolbar. Enable **Show in Share Sheet**.
+   Apple calls this screen “Details,” although recent iOS versions open it
+   through the icon rather than a menu item with that name.
+3. Back in the editor, tap **Any** in the new **Receive Any Input from Share
+   Sheet** block. Select **URLs**, **Safari Web Pages**, **Articles**, and
+   **Text**.
+4. Add **Get URLs from Input** and leave its input set to **Shortcut Input**.
+5. Add **Get Item from List** and configure it as **Get First Item from URLs**.
+6. Add a **URL** action containing
+   `https://<your-domain>/api/capture`.
+7. Add **Get Contents of URL**. Expand its options and configure:
+   - **Method:** `POST`
+   - **Headers:** add `Authorization` with the value `Bearer <CAPTURE_TOKEN>`
+     (one space after `Bearer`; paste the configured token in place of the
+     placeholder and do not add quotation marks)
+   - **Request Body:** `JSON`
+   - Add a text field named `url`; for its value, use **Select Variable** and
+     select the colored output from **Get Item from List**. Do not type the
+     variable name as plain text. A separate `Content-Type` header is not
+     needed.
+8. Add **Get Dictionary Value**, enter `message` as the key, and use **Contents
+   of URL** as its dictionary.
+9. Add **Show Notification** and use the dictionary value from the previous
+   action as its text. Save the shortcut.
+
+Test from Safari rather than with the play button in the shortcut editor:
+open an article, tap **Share → Send to AI Wire**, and allow access to the site
+when iOS asks on the first run. A successful submission reports `Queued as
+article #…`; submitting the same URL again reports `Already queued as article
+#…`. Use **Edit Actions** at the bottom of Safari's Share sheet to add the
+shortcut to Favorites or move it higher.
+
+The capture endpoint accepts JSON, URL-encoded forms, and multipart forms.
+
+#### Chrome bookmarklet on desktop
+
+The Chrome shortcut uses the existing Desk login and never puts the capture
+token in the bookmark:
+
+1. In Chrome, press **⌘⇧B** on macOS (or **Ctrl+Shift+B** on Windows/Linux) to
+   show the bookmarks bar.
+2. Right-click the bookmarks bar and choose **Add page**.
+3. Set the name to **Send to AI Wire**.
+4. Set the URL to this complete single line:
+
+   ```javascript
+   javascript:(()=>{open('https://<your-domain>/review/capture?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title),'_blank','noopener')})()
+   ```
+
+5. Choose **Bookmarks bar** as the folder and save it.
+
+While viewing an article, click **Send to AI Wire**. Chrome opens the
+Desk-protected capture page in a new tab with the article URL and title
+prefilled. Sign in to the Desk if prompted, review the URL, and click **Queue
+story**. If nothing opens, allow pop-ups for the current page or edit the
+bookmark and confirm its URL still starts with `javascript:`.
 
 On Android or ChromeOS, install the site as an app. Its web manifest registers
 AI Wire as a share target; sharing a page to it opens a Desk-authenticated,
