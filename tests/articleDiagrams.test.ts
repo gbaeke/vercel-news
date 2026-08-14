@@ -59,10 +59,15 @@ describe('article diagrams', () => {
     });
   });
 
-  it('accepts focused Mermaid and rejects embedded configuration or links', () => {
+  it('accepts semantic emphasis and rejects embedded configuration, links, or custom styling', () => {
     expect(validateMermaidSource('flowchart LR\n  A[Client] --> B[Gateway]')).toContain('flowchart LR');
+    expect(validateMermaidSource('flowchart LR\n  A[Client] --> B[Gateway]\n  class B focal')).toContain('class B focal');
     expect(() => validateMermaidSource('%%{init: {"theme":"dark"}}%%\nflowchart LR\nA --> B')).toThrow();
     expect(() => validateMermaidSource('flowchart LR\nA --> B\nclick A "https://example.com"')).toThrow();
+    expect(() => validateMermaidSource('flowchart LR\nA --> B\nstyle A fill:red')).toThrow();
+    expect(() => validateMermaidSource('flowchart LR\nA:::custom --> B')).toThrow();
+    expect(() => validateMermaidSource('flowchart LR\nA --> B\nclass A custom')).toThrow();
+    expect(() => validateMermaidSource('flowchart LR\nA --> B\nclass A,B,C focal')).toThrow();
   });
 
   it('creates a draft, approves it, and exposes it only for the current published article version', async () => {

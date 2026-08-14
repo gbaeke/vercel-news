@@ -701,8 +701,10 @@ img { max-width: 100%; display: block; }
   background: var(--paper);
   padding: 1rem;
 }
+.article-diagram-renderer:has(.article-diagram-svg) { min-height: 0; }
 .article-diagram-svg { width: 100%; }
 .article-diagram-svg svg { display: block; width: 100%; height: auto; max-height: 42rem; margin: auto; }
+.article-diagram-scroll-hint { display: none; }
 .article-diagram-loading,
 .article-diagram-error {
   margin: 0;
@@ -1168,7 +1170,7 @@ img { max-width: 100%; display: block; }
   border: 1px solid var(--rule);
   background: var(--paper-2);
 }
-.wire-explainer--inline { width: 100%; margin: 22px 0; }
+.wire-explainer--inline { width: min(1020px, calc(100vw - 40px)); margin: 22px 0; }
 .wire-explainer-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 24px; }
 .wire-explainer-kicker {
   flex: 0 0 auto;
@@ -1180,8 +1182,9 @@ img { max-width: 100%; display: block; }
 .wire-explainer h2 { margin: 0; font-size: 28px; line-height: 1.15; }
 .wire-explainer .article-diagram-renderer {
   min-height: 20rem;
-  border-color: var(--rule);
+  border: 0;
   background: var(--paper);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
 }
 .wire-explainer .wire-figcaption { gap: 24px; }
 .wire-explainer .wire-figcaption span:first-child { max-width: 72ch; }
@@ -1335,6 +1338,21 @@ img { max-width: 100%; display: block; }
   .wire-explainer-head { display: grid; gap: 6px; }
   .wire-explainer h2 { font-size: 23px; }
   .wire-explainer .article-diagram-renderer { min-height: 14rem; padding: 8px; }
+  .wire-explainer .article-diagram-renderer:has(.article-diagram-svg) { min-height: 0; }
+  .article-diagram-renderer--wide { place-items: start; }
+  .article-diagram-renderer--wide .article-diagram-svg { min-width: 48rem; }
+  .article-diagram-scroll-hint {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    display: block;
+    margin: 0 0 0.45rem;
+    color: var(--ink-soft);
+    font-family: var(--font-mono), monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
   .wire-search { align-items: flex-end; gap: 10px; }
   .wire-search-label { display: none; }
   .wire-search-control { flex: 1 1 auto; }

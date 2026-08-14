@@ -53,6 +53,7 @@ const EDITABLE_ARTICLE_STATUSES = ['in_review', 'rss_final_review', 'published']
 const MAX_INSTRUCTIONS_LENGTH = 1_500;
 const MAX_MERMAID_LENGTH = 12_000;
 const MAX_PLACEMENT_PARAGRAPH = 1_000;
+const MERMAID_SEMANTIC_CLASSES = ['focal', 'store', 'external', 'optional'] as const;
 
 const DIAGRAM_SCHEMA = {
   type: 'object',
@@ -127,11 +128,33 @@ export function validateMermaidSource(value: unknown): string {
   if (/^---\s*$/m.test(normalized) || /%%\s*\{/i.test(normalized)) {
     throw new Error('Diagram-level configuration is controlled by the site, not Mermaid source.');
   }
-  if (/^\s*(click|link)\s+/im.test(normalized)) {
+  if (/(?:^|;)\s*(click|link)\s+/im.test(normalized)) {
     throw new Error('Interactive links are not allowed in article diagrams.');
+  }
+  if (/(?:^|;)\s*(style|classDef|linkStyle)\b/im.test(normalized) || /:::/m.test(normalized)) {
+    throw new Error('Custom Mermaid styling is not allowed in article diagrams.');
   }
   if (/<\/?[a-z][^>]*>/i.test(normalized)) {
     throw new Error('HTML is not allowed in article diagrams.');
+  }
+
+  let focalCount = 0;
+  for (const match of normalized.matchAll(/^\s*class\s+(.+)$/gim)) {
+    const statement = match[1].trim().replace(/;$/, '').trim();
+    const classMatch = statement.match(
+      /^([A-Za-z][\w-]*(?:\s*,\s*[A-Za-z][\w-]*)*)\s+([A-Za-z][\w-]*)$/
+    );
+    if (!classMatch || !MERMAID_SEMANTIC_CLASSES.includes(
+      classMatch[2] as typeof MERMAID_SEMANTIC_CLASSES[number]
+    )) {
+      throw new Error('Only the predefined focal, store, external, and optional Mermaid classes are allowed.');
+    }
+    if (classMatch[2] === 'focal') {
+      focalCount += classMatch[1].split(',').length;
+    }
+  }
+  if (focalCount > 2) {
+    throw new Error('Article diagrams may emphasize at most two focal nodes.');
   }
   return normalized;
 }
