@@ -505,6 +505,13 @@ img { max-width: 100%; display: block; }
 .desk-audio p { margin: 0; text-transform: none; }
 .desk-meta { display: grid; gap: 0.4rem; margin-top: 0.5rem; }
 .desk-meta div { display: flex; justify-content: space-between; gap: 1rem; }
+.desk-meta div > :last-child {
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 
 .error-note {
   border: 1.5px solid var(--bad);
@@ -513,6 +520,7 @@ img { max-width: 100%; display: block; }
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   margin-block: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .notice-note {
@@ -522,6 +530,7 @@ img { max-width: 100%; display: block; }
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   margin-block: 1rem;
+  overflow-wrap: anywhere;
 }
 
 .settings-list { list-style: none; margin: 0 0 1rem; padding: 0; }
@@ -591,6 +600,7 @@ img { max-width: 100%; display: block; }
   color: var(--riso);
   cursor: pointer;
 }
+.source-details a { overflow-wrap: anywhere; }
 .source-details pre {
   white-space: pre-wrap;
   background: var(--paper-2);
