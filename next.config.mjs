@@ -18,6 +18,13 @@ const contentSecurityPolicy = [
 const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
+  // @sparticuz/chromium loads these compressed browser assets at runtime.
+  // Externalizing the package keeps its code intact, while this trace include
+  // makes sure Vercel also copies the assets into each server function that
+  // can invoke the scraper.
+  outputFileTracingIncludes: {
+    '/*': ['./node_modules/@sparticuz/chromium/bin/**/*'],
+  },
   async headers() {
     return [{
       source: '/(.*)',
