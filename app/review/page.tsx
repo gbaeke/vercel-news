@@ -18,7 +18,7 @@ const GROUPS = [
   { title: 'Failed', statuses: ['failed'] },
   {
     title: 'In the pipeline',
-    statuses: ['new', 'scraped', 'tagged', 'written', 'rewrite_requested', 'image_requested', 'approved'],
+    statuses: ['new', 'scrape_retry', 'scraped', 'tagged', 'written', 'rewrite_requested', 'image_requested', 'approved'],
   },
   { title: 'Recently closed', statuses: ['published', 'declined'] },
 ];
