@@ -10,6 +10,23 @@ export interface TickResult {
   to: string;
 }
 
+/**
+ * Manual desk runs are an explicit operator request, so release pending
+ * scrape backoffs before processing the queue. Scheduled runs continue to
+ * respect the backoff through claimNext().
+ */
+export async function releasePendingScrapeRetries(): Promise<number> {
+  const rows = await query<{ id: number }>(
+    `UPDATE articles
+     SET source_next_retry_at = now(), updated_at = now()
+     WHERE status = 'scrape_retry'
+       AND source_next_retry_at > now()
+       AND claimed_at IS NULL
+     RETURNING id`
+  );
+  return rows.length;
+}
+
 export async function runTick(
   handlers: Record<string, Handler> = HANDLERS,
   budgetMs: number = Number(process.env.TICK_BUDGET_MS ?? DEFAULT_BUDGET_MS)

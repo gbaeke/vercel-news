@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { runTick } from '../../../lib/tick';
+import { releasePendingScrapeRetries, runTick } from '../../../lib/tick';
 import { ingestFeeds } from '../../../lib/ingest';
 import { enqueueArticleAudioById, runAudioTick } from '../../../lib/audio';
 import {
@@ -392,6 +392,7 @@ export async function runTickNow() {
   let audio: Awaited<ReturnType<typeof runAudioTick>>;
   try {
     ingested = await ingestFeeds();
+    await releasePendingScrapeRetries();
     processed = await runTick();
     audio = await runAudioTick();
   } catch (error) {

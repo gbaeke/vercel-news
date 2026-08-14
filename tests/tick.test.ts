@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { query } from '../lib/db';
-import { runTick } from '../lib/tick';
+import { releasePendingScrapeRetries, runTick } from '../lib/tick';
 import type { Handler } from '../lib/handlers/registry';
 
 async function insertArticle(url: string, status: string) {
@@ -12,6 +12,20 @@ async function insertArticle(url: string, status: string) {
 }
 
 describe('runTick', () => {
+  it('releases pending scrape retries for a manual desk run', async () => {
+    const id = await insertArticle('https://example.com/retry', 'scrape_retry');
+    await query(
+      `UPDATE articles SET source_next_retry_at = now() + interval '10 minutes' WHERE id = $1`,
+      [id]
+    );
+
+    await expect(releasePendingScrapeRetries()).resolves.toBe(1);
+    const [row] = await query<{ source_next_retry_at: string }>(
+      `SELECT source_next_retry_at FROM articles WHERE id = $1`, [id]
+    );
+    expect(new Date(row.source_next_retry_at).getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it('walks an article through a chain of stub handlers in one call', async () => {
     await insertArticle('https://example.com/a', 'new');
 
