@@ -28,6 +28,7 @@
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.157",
     "@extractus/article-extractor": "^8.1.0",
+    "@sparticuz/chromium": "^149.0.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
     "@vercel/speed-insights": "^2.0.0",
@@ -38,6 +39,7 @@
     "mermaid": "^11.16.1",
     "next": "^16.3.0",
     "pg": "^8.22.0",
+    "puppeteer-core": "^25.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "rss-parser": "^3.13.0",

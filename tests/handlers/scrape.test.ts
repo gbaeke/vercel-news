@@ -123,6 +123,32 @@ describe('scrapeHandler', () => {
     });
   });
 
+  it('renders a JavaScript-only page when plain extraction has no usable content', async () => {
+    const article = await insertArticle();
+    const renderedHtml = `<html><head><title>GLM-5.3</title></head><body><article><h1>GLM-5.3</h1><p>${'Rendered article content. '.repeat(30)}</p></article></body></html>`;
+    const render = vi.fn(async () => renderedHtml);
+
+    const to = await scrapeHandler(article as any, {
+      extract: async () => null,
+      render,
+      sleep: noWait,
+    });
+
+    expect(to).toBe('scraped');
+    expect(render).toHaveBeenCalledTimes(1);
+    const [row] = await query<{
+      status: string;
+      source_extraction_method: string;
+      trigger_content: string;
+    }>(
+      `SELECT status, source_extraction_method, trigger_content FROM articles WHERE id = $1`,
+      [article.id]
+    );
+    expect(row.status).toBe('scraped');
+    expect(row.source_extraction_method).toBe('browser');
+    expect(row.trigger_content).toContain('Rendered article content.');
+  });
+
   it('retries a weak page response before accepting a later complete extraction', async () => {
     const article = await insertArticle();
     let calls = 0;

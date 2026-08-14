@@ -7,6 +7,7 @@ export interface Article {
   source_rss_content: string | null;
   source_extraction_method:
     | 'page'
+    | 'browser'
     | 'rss-fallback'
     | 'youtube-captions'
     | 'youtube-asr'

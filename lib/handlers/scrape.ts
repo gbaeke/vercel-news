@@ -9,6 +9,7 @@ import {
 } from '../sourceQuality';
 import type { Article } from '../types';
 import { safeFetchText } from '../safeFetch';
+import { renderJavaScriptPage } from '../browserScrape';
 import {
   fetchYouTubeTranscript,
   formatTranscript,
@@ -27,6 +28,7 @@ const MIN_TRANSCRIPT_LENGTH = 200;
 
 export interface ScrapeDeps {
   extract?: (url: string) => Promise<string | null>;
+  render?: (url: string) => Promise<string | null>;
   sleep?: (milliseconds: number) => Promise<void>;
   fetchYouTubeTranscript?: YouTubeTranscriptFetcher;
   summarizeTranscript?: TranscriptSummarizer;
@@ -173,6 +175,10 @@ async function defaultExtract(url: string): Promise<string | null> {
   });
   if (!res.ok) return null;
   const html = res.text;
+  return extractArticleContent(html, url);
+}
+
+async function extractArticleContent(html: string, url: string): Promise<string | null> {
   const article = await extractFromHtml(html, url);
   const candidates = [article?.content ?? null, extractStructuredArticleBody(html)]
     .filter((candidate): candidate is string => Boolean(candidate));
@@ -188,7 +194,7 @@ export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Pr
   const sleep = deps.sleep ?? ((milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
 
   let content: string | null = null;
-  let method: 'page' | 'rss-fallback' | null = null;
+  let method: 'page' | 'browser' | 'rss-fallback' | null = null;
   let fallbackReason: string | null = null;
   let sourceCapped = false;
 
@@ -225,6 +231,30 @@ export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Pr
       fallbackReason = [fallbackReason, `RSS fallback ${assessment.reason ?? 'was unusable'}`]
         .filter(Boolean)
         .join('; ');
+    }
+  }
+
+  const browserRender = deps.render ?? (deps.extract ? null : renderJavaScriptPage);
+  if (!content && browserRender) {
+    try {
+      const renderedHtml = await browserRender(article.trigger_url);
+      const rendered = renderedHtml ? await extractArticleContent(renderedHtml, article.trigger_url) : null;
+      const plainText = rendered ? htmlToText(rendered) : '';
+      sourceCapped ||= plainText.length > MAX_SOURCE_LENGTH;
+      const assessment = assessSource(plainText, MIN_PAGE_SOURCE_LENGTH);
+      if (rendered && assessment.ok) {
+        content = htmlToTextWithLinks(rendered, article.trigger_url);
+        method = 'browser';
+      } else if (rendered) {
+        fallbackReason = [fallbackReason, `browser extraction ${assessment.reason ?? 'was unusable'}`]
+          .filter(Boolean)
+          .join('; ');
+      }
+    } catch (error) {
+      fallbackReason = [fallbackReason, `browser rendering failed: ${(error as Error).message}`]
+        .filter(Boolean)
+        .join('; ');
+      console.log(`[scrape] article ${article.id}: ${fallbackReason}`);
     }
   }
 
@@ -268,7 +298,7 @@ export async function scrapeHandler(article: Article, deps: ScrapeDeps = {}): Pr
       method,
       content.length,
       (article.source_attempt_count ?? 0) + 1,
-      method === 'rss-fallback' ? fallbackReason : null,
+      method === 'rss-fallback' || method === 'browser' ? fallbackReason : null,
       article.id,
     ]
   );

@@ -17,6 +17,7 @@ const contentSecurityPolicy = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
   async headers() {
     return [{
       source: '/(.*)',
