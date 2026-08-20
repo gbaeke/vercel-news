@@ -60,7 +60,18 @@ function hasRequiredKeys(obj: any, schema: any): boolean {
   return true;
 }
 
-export async function structured<T>(system: string, user: string, schema: Record<string, unknown>): Promise<T> {
+export interface StructuredOptions {
+  attempts?: number;
+  maxRetries?: number;
+  maxOutputTokens?: number;
+}
+
+export async function structured<T>(
+  system: string,
+  user: string,
+  schema: Record<string, unknown>,
+  options: StructuredOptions = {}
+): Promise<T> {
   if (isFake()) {
     return fakeValueForSchema(schema) as T;
   }
@@ -70,12 +81,15 @@ export async function structured<T>(system: string, user: string, schema: Record
   const keyHint = required.length
     ? `\n\nRespond with a JSON object using exactly these property names: ${required.join(', ')}.`
     : '';
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  const attempts = Math.max(1, options.attempts ?? 2);
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     const { object } = await generateObject({
       model: textModel(),
       system: system + keyHint,
       prompt: user,
       schema: jsonSchema<T>(schema as any),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
+      ...(options.maxOutputTokens === undefined ? {} : { maxOutputTokens: options.maxOutputTokens }),
     });
     if (hasRequiredKeys(object, schema)) return object as T;
     console.log(`[llm] structured output missing required keys (attempt ${attempt}), got: ${Object.keys(object as object).join(',')}`);

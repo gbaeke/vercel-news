@@ -5,6 +5,7 @@ Hard rules:
 - Return Mermaid source only in the mermaid_source field, without Markdown fences, YAML frontmatter, init directives, custom styling commands (`style`, `classDef`, `linkStyle`), click actions, links, HTML, icons, or emoji.
 - The source must begin with `flowchart TD`, `flowchart LR`, or `sequenceDiagram`.
 - Keep labels brief and readable. Prefer plain language over jargon.
+- Put every node and edge label containing spaces or punctuation inside double quotes, for example `A["Model gateway"]` or `A -->|"Over quota"| B`. Keep node IDs short and ASCII-only.
 - One diagram should explain one central concept. Do not reproduce the whole article.
 - A relationship or architecture diagram must still use Mermaid flowchart syntax.
 - The title, caption, and alt text must describe what the diagram actually shows. The alt text should convey the important relationships, not merely say "diagram".

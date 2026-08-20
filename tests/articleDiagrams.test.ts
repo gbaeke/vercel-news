@@ -1,14 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { query } from '../lib/db';
 import {
   approveArticleDiagramById,
   generateArticleDiagramById,
   getApprovedArticleDiagram,
   getArticleDiagram,
+  generateArticleDiagram,
   parseArticleDiagramInput,
   updateArticleDiagramPlacementById,
   validateMermaidSource,
 } from '../lib/articleDiagrams';
+import type { Article } from '../lib/types';
 import {
   countArticleParagraphs,
   splitArticleHtmlAfterParagraph,
@@ -22,6 +24,50 @@ function diagramInput() {
     detail: 'standard' as const,
     look: 'classic' as const,
     placementAfterParagraph: 2,
+  };
+}
+
+function sampleArticle(): Article {
+  return {
+    id: 1,
+    source_feed: 'openai',
+    trigger_url: 'https://example.com/diagram',
+    trigger_title: null,
+    trigger_content: null,
+    source_rss_content: null,
+    source_extraction_method: 'page',
+    source_content_length: null,
+    source_attempt_count: 0,
+    source_last_attempt_at: null,
+    source_next_retry_at: null,
+    source_fallback_reason: null,
+    source_capped: false,
+    source_type: 'web',
+    youtube_video_id: null,
+    source_transcript: null,
+    source_transcript_lang: null,
+    source_provider: null,
+    source_external_job_id: null,
+    source_job_started_at: null,
+    tags: null,
+    persona: null,
+    title: 'Gateway explainer',
+    content_md: 'A client sends a request to a gateway. The gateway selects a model and returns the response.',
+    content_html: null,
+    summary: 'A model gateway routes requests.',
+    seo_summary: null,
+    slug: 'gateway-explainer',
+    thumbnail_url: null,
+    feedback: null,
+    version: 1,
+    rss_approval_required: false,
+    status: 'published',
+    failed_from: null,
+    error: null,
+    claimed_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    published_at: new Date().toISOString(),
   };
 }
 
@@ -40,6 +86,51 @@ async function insertArticle(status = 'in_review'): Promise<number> {
 }
 
 describe('article diagrams', () => {
+  it('repairs a generated diagram that violates the format rules once', async () => {
+    const structured = vi.fn()
+      .mockResolvedValueOnce({
+        title: 'Request path',
+        caption: 'The request path.',
+        alt_text: 'A request path.',
+        mermaid_source: 'flowchart LR\nA --> B\nstyle A fill:red',
+      })
+      .mockResolvedValueOnce({
+        title: 'Request path',
+        caption: 'The request path.',
+        alt_text: 'A client request travels through a gateway to a model.',
+        mermaid_source: 'flowchart LR\nA["Client"] --> B["Gateway"] --> C["Model"]',
+      });
+
+    await expect(generateArticleDiagram(sampleArticle(), diagramInput(), { structured }))
+      .resolves.toMatchObject({
+        title: 'Request path',
+        mermaidSource: 'flowchart LR\nA["Client"] --> B["Gateway"] --> C["Model"]',
+      });
+    expect(structured).toHaveBeenCalledTimes(2);
+    expect(structured.mock.calls[1][1]).toContain('Custom Mermaid styling is not allowed');
+  });
+
+  it('classifies an unusable repaired response as a validation failure', async () => {
+    const structured = vi.fn().mockResolvedValue({
+      title: 'Request path',
+      caption: 'The request path.',
+      alt_text: 'A request path.',
+      mermaid_source: 'flowchart LR\nA --> B\nstyle A fill:red',
+    });
+
+    await expect(generateArticleDiagram(sampleArticle(), diagramInput(), { structured }))
+      .rejects.toMatchObject({ stage: 'validation' });
+    expect(structured).toHaveBeenCalledTimes(2);
+  });
+
+  it('classifies structured-output failures as model failures', async () => {
+    const structured = vi.fn().mockRejectedValue(new Error('provider rejected structured output'));
+
+    await expect(generateArticleDiagram(sampleArticle(), diagramInput(), { structured }))
+      .rejects.toMatchObject({ stage: 'model' });
+    expect(structured).toHaveBeenCalledTimes(1);
+  });
+
   it('parses the editor controls with safe enum defaults', () => {
     const form = new FormData();
     form.set('instructions', 'Show the decision path.');

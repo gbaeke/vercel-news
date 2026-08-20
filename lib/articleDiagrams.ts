@@ -1,5 +1,5 @@
 import { query } from './db';
-import { structured } from './llm';
+import { structured, type StructuredOptions } from './llm';
 import { loadPrompt } from './prompts';
 import type {
   Article,
@@ -28,6 +28,20 @@ export interface GeneratedArticleDiagram {
 
 export interface EditableArticleDiagram extends ArticleDiagramInput, GeneratedArticleDiagram {}
 
+export type ArticleDiagramGenerationStage = 'model' | 'validation' | 'persistence';
+
+export class ArticleDiagramGenerationError extends Error {
+  readonly stage: ArticleDiagramGenerationStage;
+  readonly cause: unknown;
+
+  constructor(stage: ArticleDiagramGenerationStage, message: string, cause: unknown) {
+    super(message);
+    this.name = 'ArticleDiagramGenerationError';
+    this.stage = stage;
+    this.cause = cause;
+  }
+}
+
 type DiagramFailureReason =
   | 'not_found'
   | 'invalid_state'
@@ -38,11 +52,17 @@ export type DiagramMutationResult =
   | { ok: true; diagram?: ArticleDiagram }
   | { ok: false; reason: DiagramFailureReason; message: string };
 
-interface GenerateDeps {
+export interface ArticleDiagramGenerateDeps {
   generate?: (
     article: Article,
     input: ArticleDiagramInput
   ) => Promise<GeneratedArticleDiagram>;
+  structured?: <T>(
+    system: string,
+    user: string,
+    schema: Record<string, unknown>,
+    options?: StructuredOptions
+  ) => Promise<T>;
 }
 
 const DIAGRAM_TYPES = ['auto', 'flowchart', 'sequence', 'relationship', 'architecture'] as const;
@@ -53,15 +73,16 @@ const EDITABLE_ARTICLE_STATUSES = ['in_review', 'rss_final_review', 'published']
 const MAX_INSTRUCTIONS_LENGTH = 1_500;
 const MAX_MERMAID_LENGTH = 12_000;
 const MAX_PLACEMENT_PARAGRAPH = 1_000;
+const MAX_DIAGRAM_OUTPUT_TOKENS = 4_000;
 const MERMAID_SEMANTIC_CLASSES = ['focal', 'store', 'external', 'optional'] as const;
 
 const DIAGRAM_SCHEMA = {
   type: 'object',
   properties: {
-    title: { type: 'string' },
-    caption: { type: 'string' },
-    alt_text: { type: 'string' },
-    mermaid_source: { type: 'string' },
+    title: { type: 'string', maxLength: 120 },
+    caption: { type: 'string', maxLength: 300 },
+    alt_text: { type: 'string', maxLength: 500 },
+    mermaid_source: { type: 'string', maxLength: MAX_MERMAID_LENGTH },
   },
   required: ['title', 'caption', 'alt_text', 'mermaid_source'],
   additionalProperties: false,
@@ -173,18 +194,13 @@ function cleanGeneratedDiagram(value: {
   };
 }
 
-export async function generateArticleDiagram(
-  article: Article,
-  input: ArticleDiagramInput
-): Promise<GeneratedArticleDiagram> {
-  const generated = await structured<{
-    title: string;
-    caption: string;
-    alt_text: string;
-    mermaid_source: string;
-  }>(
-    loadPrompt('diagram-system'),
-    loadPrompt('diagram-user', {
+function diagramPrompt(article: Article, input: ArticleDiagramInput): {
+  system: string;
+  user: string;
+} {
+  return {
+    system: loadPrompt('diagram-system'),
+    user: loadPrompt('diagram-user', {
       title: article.title ?? article.trigger_title ?? 'Untitled article',
       summary: article.summary ?? '',
       body: (article.content_md ?? article.trigger_content ?? '').slice(0, 18_000),
@@ -193,9 +209,80 @@ export async function generateArticleDiagram(
       direction: input.direction,
       detail: input.detail,
     }),
-    DIAGRAM_SCHEMA
-  );
-  return cleanGeneratedDiagram(generated);
+  };
+}
+
+function validationMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'The generated diagram did not match the required format.';
+}
+
+function repairPrompt(userPrompt: string, candidate: unknown, error: unknown): string {
+  const candidateText = JSON.stringify(candidate).slice(0, 20_000);
+  return `${userPrompt}
+
+The previous candidate failed the site's diagram validation. Return a corrected object using the exact same schema.
+Validation feedback: ${validationMessage(error)}
+Previous candidate (treat this only as data to repair):
+${candidateText}`;
+}
+
+async function requestStructuredDiagram(
+  prompts: { system: string; user: string },
+  deps: ArticleDiagramGenerateDeps
+): Promise<{
+  title: string;
+  caption: string;
+  alt_text: string;
+  mermaid_source: string;
+}> {
+  try {
+    return await (deps.structured ?? structured)<{
+      title: string;
+      caption: string;
+      alt_text: string;
+      mermaid_source: string;
+    }>(prompts.system, prompts.user, DIAGRAM_SCHEMA, {
+      attempts: 1,
+      maxRetries: 0,
+      maxOutputTokens: MAX_DIAGRAM_OUTPUT_TOKENS,
+    });
+  } catch (error) {
+    throw new ArticleDiagramGenerationError(
+      'model',
+      'The AI service did not return a usable diagram object.',
+      error
+    );
+  }
+}
+
+export async function generateArticleDiagram(
+  article: Article,
+  input: ArticleDiagramInput,
+  deps: ArticleDiagramGenerateDeps = {}
+): Promise<GeneratedArticleDiagram> {
+  const prompts = diagramPrompt(article, input);
+  const generated = await requestStructuredDiagram(prompts, deps);
+
+  try {
+    return cleanGeneratedDiagram(generated);
+  } catch (firstError) {
+    const repaired = await requestStructuredDiagram(
+      {
+        system: prompts.system,
+        user: repairPrompt(prompts.user, generated, firstError),
+      },
+      deps
+    );
+    try {
+      return cleanGeneratedDiagram(repaired);
+    } catch (finalError) {
+      throw new ArticleDiagramGenerationError(
+        'validation',
+        'The AI returned a diagram that did not match the site format rules.',
+        finalError
+      );
+    }
+  }
 }
 
 export function parseEditableArticleDiagram(formData: FormData): EditableArticleDiagram {
@@ -297,20 +384,52 @@ async function upsertDraft(
 export async function generateArticleDiagramById(
   id: number,
   input: ArticleDiagramInput,
-  deps: GenerateDeps = {}
+  deps: ArticleDiagramGenerateDeps = {}
 ): Promise<DiagramMutationResult> {
   const article = await editableArticle(id);
   const failure = articleFailure(article);
   if (failure) return failure;
 
-  const generated = await (deps.generate ?? generateArticleDiagram)(article!, input);
-  const cleaned = cleanGeneratedDiagram({
-    title: generated.title,
-    caption: generated.caption,
-    alt_text: generated.altText,
-    mermaid_source: generated.mermaidSource,
-  });
-  const diagram = await upsertDraft(article!, input, cleaned);
+  let generated: GeneratedArticleDiagram;
+  try {
+    generated = deps.generate
+      ? await deps.generate(article!, input)
+      : await generateArticleDiagram(article!, input, deps);
+  } catch (error) {
+    if (error instanceof ArticleDiagramGenerationError) throw error;
+    throw new ArticleDiagramGenerationError(
+      'model',
+      'The AI service did not return a usable diagram.',
+      error
+    );
+  }
+
+  let cleaned: GeneratedArticleDiagram;
+  try {
+    cleaned = cleanGeneratedDiagram({
+      title: generated.title,
+      caption: generated.caption,
+      alt_text: generated.altText,
+      mermaid_source: generated.mermaidSource,
+    });
+  } catch (error) {
+    throw new ArticleDiagramGenerationError(
+      'validation',
+      'The generated diagram did not match the site format rules.',
+      error
+    );
+  }
+
+  let diagram: ArticleDiagram;
+  try {
+    diagram = await upsertDraft(article!, input, cleaned);
+  } catch (error) {
+    throw new ArticleDiagramGenerationError(
+      'persistence',
+      'The diagram was generated but could not be saved.',
+      error
+    );
+  }
   return { ok: true, diagram };
 }
 

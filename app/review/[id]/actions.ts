@@ -29,6 +29,7 @@ import {
   parsePlacementAfterParagraph,
   saveArticleDiagramById,
   updateArticleDiagramPlacementById,
+  ArticleDiagramGenerationError,
   type DiagramMutationResult,
 } from '../../../lib/articleDiagrams';
 
@@ -170,6 +171,36 @@ function diagramFailureMessage(result: DiagramMutationResult): string | null {
   return result.ok ? null : result.message;
 }
 
+function errorSummary(error: unknown): { name: string; message: string } {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message.slice(0, 500) };
+  }
+  return { name: typeof error, message: String(error).slice(0, 500) };
+}
+
+function diagramGenerationFailure(error: unknown, articleId: number): string {
+  if (error instanceof ArticleDiagramGenerationError) {
+    console.error('[desk] generate article diagram failed', {
+      articleId,
+      stage: error.stage,
+      error: errorSummary(error.cause),
+    });
+    if (error.stage === 'validation') {
+      return 'The AI returned a diagram that did not match the site format. Try a simpler instruction.';
+    }
+    if (error.stage === 'persistence') {
+      return 'The diagram was generated but could not be saved. Please try again.';
+    }
+    return 'The AI service did not return a usable diagram. Please try again.';
+  }
+
+  console.error('[desk] generate article diagram failed', {
+    articleId,
+    error: errorSummary(error),
+  });
+  return 'Could not generate the diagram. Try refining the instruction or try again.';
+}
+
 export async function generateArticleDiagramAction(rawId: number, formData: FormData) {
   await requireReviewSession();
   const id = validArticleId(rawId);
@@ -185,8 +216,7 @@ export async function generateArticleDiagramAction(rawId: number, formData: Form
   try {
     result = await generateArticleDiagramById(id, input);
   } catch (error) {
-    logUnexpected('generate article diagram', { articleId: id }, error);
-    redirect(feedbackUrl(articlePath(id), 'error', 'Could not generate the diagram. Try refining the instruction or try again.'));
+    redirect(feedbackUrl(articlePath(id), 'error', diagramGenerationFailure(error, id)));
   }
 
   revalidateArticleViews();
