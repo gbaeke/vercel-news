@@ -19,6 +19,17 @@ function textModel(): string {
   return process.env.TEXT_MODEL ?? 'deepseek/deepseek-v4-flash';
 }
 
+const DEFAULT_IMAGE_MODEL = 'recraft/recraft-v4.1';
+
+function imageModel(): string {
+  return process.env.IMAGE_MODEL?.trim() || DEFAULT_IMAGE_MODEL;
+}
+
+function isMissingModelError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /model[_ ]?(not found|does not exist)|model .* not found/i.test(message);
+}
+
 export async function complete(system: string, user: string): Promise<string> {
   if (isFake()) {
     return `[FAKE] response to a ${user.length}-character prompt under system: ${system.slice(0, 40)}`;
@@ -97,19 +108,34 @@ export async function structured<T>(
   throw new Error('structured output missing required keys after retry');
 }
 
-export async function generateImageBytes(prompt: string): Promise<Buffer> {
-  if (isFake()) throw new Error('FAKE_LLM: image generation skipped');
-  const model = process.env.IMAGE_MODEL ?? 'recraft/recraft-v4.1';
+async function generateImageBytesWithModel(prompt: string, model: string): Promise<Buffer> {
   try {
     const { image } = await generateImage({ model, prompt });
     return Buffer.from(image.uint8Array);
   } catch (imageApiErr) {
+    if (isMissingModelError(imageApiErr)) throw imageApiErr;
     // Multimodal chat models (e.g. google/gemini-3.1-flash-image) don't speak
     // the image API; they return images as files on a text generation result.
     const result = await generateText({ model, prompt });
     const image = result.files.find((f) => f.mediaType?.startsWith('image/'));
     if (!image) throw imageApiErr;
     return Buffer.from(image.uint8Array);
+  }
+}
+
+export async function generateImageBytes(prompt: string): Promise<Buffer> {
+  if (isFake()) throw new Error('FAKE_LLM: image generation skipped');
+  const model = imageModel();
+  try {
+    return await generateImageBytesWithModel(prompt, model);
+  } catch (err) {
+    // Vercel environment variables outlive model catalog entries. Recover from
+    // a retired/mistyped configured model without masking other API failures.
+    if (model !== DEFAULT_IMAGE_MODEL && isMissingModelError(err)) {
+      console.log(`[llm] image model ${model} is unavailable, retrying with ${DEFAULT_IMAGE_MODEL}`);
+      return generateImageBytesWithModel(prompt, DEFAULT_IMAGE_MODEL);
+    }
+    throw err;
   }
 }
 
